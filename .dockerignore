@@ -1,0 +1,6 @@
+*
+!Cargo.*
+!src/
+!tests/
+!vendor/
+!.cargo/

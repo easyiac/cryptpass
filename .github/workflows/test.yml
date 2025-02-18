@@ -1,0 +1,28 @@
+name: Test
+
+on:
+    push:
+    pull_request:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    build:
+        timeout-minutes: 30
+        cancel-timeout-minutes: 30
+        name: test
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4.2.2
+              with:
+                  fetch-depth: 0
+                  persist-credentials: false
+
+            - uses: Swatinem/rust-cache@v2.7.7
+
+            - name: test
+              run: |+
+                  cargo test
