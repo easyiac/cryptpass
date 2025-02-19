@@ -17,12 +17,14 @@ pub(crate) async fn read(
 ) -> Result<Option<String>, KvError> {
     info!("Reading key: {}", path);
 
-    check_path(&path).await.expect("Error checking path");
+    check_path(&path).await.map_err(|e| KvError(format!("Error checking path: {}", e)))?;
+    let physical = &mut shared_state
+        .write()
+        .map_err(|e| KvError(format!("Error getting shared state: {}", e)))?
+        .physical
+        .clone();
 
-    let physical = &mut shared_state.write().unwrap().physical.clone();
-
-    let value = physical.read(path).await.expect("Error reading key").map(|v| v.to_string());
-    Ok(value)
+    Ok(physical.read(path).await.map_err(|e| KvError(format!("Error reading key: {}", e)))?)
 }
 
 pub(crate) async fn write(
@@ -32,27 +34,28 @@ pub(crate) async fn write(
 ) -> Result<(), KvError> {
     info!("Writing key: {} with value: {}", path, value);
     check_path(&path).await?;
-    let storage = &mut shared_state
+    let physical = &mut shared_state
         .write()
         .map_err(|e| KvError(format!("Error getting shared state: {}", e)))?
         .physical
         .clone();
 
-    storage.write(path, value).await.map_err(|e| KvError(format!("Error writing key: {}", e)))?;
-    Ok(())
+    Ok(physical
+        .write(path, value)
+        .await
+        .map_err(|e| KvError(format!("Error writing key: {}", e)))?)
 }
 
 pub(crate) async fn delete(path: &str, shared_state: &mut SharedState) -> Result<(), KvError> {
     info!("Deleting key: {}", path);
     check_path(&path).await?;
-    let storage = &mut shared_state
+    let physical = &mut shared_state
         .write()
         .map_err(|e| KvError(format!("Error getting shared state: {}", e)))?
         .physical
         .clone();
 
-    storage.delete(path).await.map_err(|e| KvError(format!("Error deleting key: {}", e)))?;
-    Ok(())
+    Ok(physical.delete(path).await.map_err(|e| KvError(format!("Error deleting key: {}", e)))?)
 }
 
 async fn check_path(path: &str) -> Result<(), KvError> {
