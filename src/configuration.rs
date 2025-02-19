@@ -39,7 +39,7 @@ pub fn load_configuration() -> &'static Configuration {
     let mut configuration_json =
         std::env::var("CRUSTPASS_CONFIGURATION_JSON").unwrap_or("".to_string());
     if configuration_file == "" && configuration_json == "" {
-        configuration_file = "/etc/crustpass/config.json".to_string();
+        configuration_file = "/etc/crustpass/configuration.json".to_string();
         info!(
             "CRUSTPASS_CONFIGURATION_FILE and CRUSTPASS_CONFIGURATION_JSON not set, using default file: {}",
             configuration_file

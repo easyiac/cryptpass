@@ -4,7 +4,7 @@ Manage seed data for my home lab.
 
 ## Configuration
 
-`CRUSTPASS_CONFIGURATION_FILE` - Path to the settings file. Default: `/etc/crustpass/config.json`
+`CRUSTPASS_CONFIGURATION_FILE` - Path to the settings file. Default: `/etc/crustpass/configuration.json`
 
 `CRUSTPASS_CONFIGURATION_JSON` - JSON string of settings. Default: `null`
 
