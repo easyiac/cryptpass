@@ -1,6 +1,6 @@
 use crate::{
     routers::ServerError::{self, InternalServerError, MethodNotAllowed, NotFound},
-    AppState,
+    services, AppState,
 };
 use axum::{
     extract::{Path, State},
@@ -9,19 +9,17 @@ use axum::{
 };
 use tracing::{debug, info};
 
-pub(crate) async fn secret(
+pub(crate) async fn kv(
     method: Method,
-    Path(path): Path<String>,
+    Path(key): Path<String>,
     State(state): State<AppState>,
     body: String,
 ) -> Result<impl IntoResponse, ServerError> {
-    info!("Received request for key: {}", path);
-    let mut storage = state.physical;
+    info!("Received request for key: {}", key.clone());
 
     match method.as_str() {
         "GET" => {
-            let value = storage
-                .read(&path)
+            let value = services::kv::read(key.clone(), state)
                 .await
                 .map_err(|e| InternalServerError(format!("Error reading key: {}", e)))?;
             debug!("Read value: {:?}", value);
@@ -35,13 +33,13 @@ pub(crate) async fn secret(
                         InternalServerError(format!("Error creating GET response: {}", e))
                     })?)
             } else {
-                debug!("Key not found: {}", path);
-                Err(NotFound(format!("Key not found: {}", path)))
+                debug!("Key not found: {}", key);
+                Err(NotFound(format!("Key not found: {}", key)))
             }
         }
         "POST" => {
             debug!("Received body: {}", body);
-            let write_res = storage.write(&path, &body).await;
+            let write_res = services::kv::write(key, body, state).await;
 
             if let Err(e) = write_res {
                 Err(InternalServerError(format!("Error writing key: {}", e)))
@@ -56,7 +54,7 @@ pub(crate) async fn secret(
             }
         }
         "DELETE" => {
-            if let Err(e) = storage.delete(&path).await {
+            if let Err(e) = services::kv::delete(key, state).await {
                 Err(InternalServerError(format!("Error deleting key: {}", e)))
             } else {
                 Ok(Response::builder()

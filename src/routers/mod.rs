@@ -1,6 +1,6 @@
 mod authentication;
+mod kv;
 mod logging;
-mod secret;
 
 use crate::{configuration::Server, routers::authentication::auth_layer, AppState};
 use axum::{
@@ -63,8 +63,8 @@ impl IntoResponse for ServerError {
     }
 }
 
-fn get_secret_router() -> Router<AppState> {
-    Router::new().route("/{*key}", any(secret::secret))
+fn get_kv_router() -> Router<AppState> {
+    Router::new().route("/{*key}", any(kv::kv))
 }
 
 async fn handle_any() -> Result<impl IntoResponse, ServerError> {
@@ -87,7 +87,7 @@ pub(crate) async fn axum_server(server: Server, app_state: AppState) -> Result<(
         ))
     })?;
     let app = Router::new()
-        .nest("/secret", get_secret_router())
+        .nest("/kv", get_kv_router())
         .route("/{*key}", any(handle_any))
         .route("/health", any(handle_health))
         .layer(middleware::from_fn_with_state(app_state.clone(), auth_layer))

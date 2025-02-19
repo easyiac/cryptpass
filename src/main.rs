@@ -3,7 +3,7 @@ mod configuration;
 mod enc;
 mod physical;
 mod routers;
-
+mod services;
 use crate::{authentication::Authentication, physical::Physical, routers::axum_server};
 use tracing::{debug, info};
 
