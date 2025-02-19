@@ -21,7 +21,7 @@ async fn main() {
     debug!("Server configuration: {:?}", configuration);
     let server = configuration.server.clone();
     let app_state = AppState {
-        physical: Physical::new(configuration.physical.clone()),
+        physical: Physical::new(configuration.physical.clone()).await,
         authentication: Authentication::new(configuration.authentication.clone()),
     };
     axum_server(server, app_state).await.unwrap_or_else(|e| panic!("Unable to start server: {}", e))

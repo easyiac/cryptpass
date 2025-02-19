@@ -2,11 +2,7 @@ use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvI
 use base64::{prelude::BASE64_STANDARD, Engine};
 
 #[allow(dead_code)]
-pub(crate) async fn encryption(
-    key_base64: &str,
-    iv_base64: &str,
-    plaintext: &str,
-) -> String {
+pub(crate) async fn encryption(key_base64: &str, iv_base64: &str, plaintext: &str) -> String {
     let key_decoded: Vec<u8> = BASE64_STANDARD.decode(key_base64.as_bytes()).unwrap();
     let key: [u8; 32] = key_decoded.try_into().unwrap();
 
