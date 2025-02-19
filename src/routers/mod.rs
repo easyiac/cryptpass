@@ -16,7 +16,7 @@ use tracing::{info, warn};
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub enum ServerError {
+pub(crate) enum ServerError {
     RouterError(String),
     NotFound(String),
     InternalServerError(String),
@@ -79,7 +79,7 @@ async fn handle_health() -> Result<impl IntoResponse, ServerError> {
         .map_err(|e| ServerError::InternalServerError(format!("Error creating response: {}", e)))
 }
 //noinspection HttpUrlsUsage
-pub async fn axum_server(server: Server, app_state: AppState) -> Result<(), ServerError> {
+pub(crate) async fn axum_server(server: Server, app_state: AppState) -> Result<(), ServerError> {
     let addr: SocketAddr = server.socket_addr.parse().map_err(|e| {
         ServerError::RouterError(format!(
             "Unable to parse address: {}, error: {}",

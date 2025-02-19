@@ -2,7 +2,7 @@ use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvI
 use base64::{prelude::BASE64_STANDARD, Engine};
 
 #[allow(dead_code)]
-pub async fn encryption(
+pub(crate) async fn encryption(
     key_str_base64: &String,
     iv_str_base64: &String,
     plaintext: &String,
@@ -27,7 +27,7 @@ pub async fn encryption(
 }
 
 #[allow(dead_code)]
-pub async fn decryption(
+pub(crate) async fn decryption(
     key_str_base64: &String,
     iv_str_base64: &String,
     encrypted_text_base64: &String,

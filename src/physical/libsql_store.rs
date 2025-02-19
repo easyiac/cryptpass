@@ -18,7 +18,7 @@ struct LibSQLDetails {
     auth_token: String,
 }
 
-pub struct LibSQLError(String);
+pub(crate) struct LibSQLError(String);
 
 impl std::fmt::Display for LibSQLError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -27,12 +27,12 @@ impl std::fmt::Display for LibSQLError {
 }
 
 #[derive(Clone, Debug)]
-pub struct LibSQLPhysical {
+pub(crate) struct LibSQLPhysical {
     libsql_details: LibSQLDetails,
 }
 
 impl LibSQLPhysical {
-    pub fn new(physical: crate::configuration::Physical) -> Self {
+    pub(crate) fn new(physical: crate::configuration::Physical) -> Self {
         if physical.physical_type != "libsql" {
             panic!("Only sqlite is supported at this time");
         }
@@ -73,7 +73,7 @@ impl LibSQLPhysical {
             Ok(0)
         }
     }
-    pub async fn read(&mut self, key: &str) -> Result<Option<String>, LibSQLError> {
+    pub(crate) async fn read(&mut self, key: &str) -> Result<Option<String>, LibSQLError> {
         let table_name = self.libsql_details.table_name.to_string();
         let sql =&format!(
             "SELECT value_d FROM {table_name} WHERE key_d = ? AND is_deleted_d = 0 ORDER BY version_d DESC LIMIT 1;"
@@ -99,7 +99,7 @@ impl LibSQLPhysical {
         }
     }
 
-    pub async fn write(&mut self, key: &str, value: &str) -> Result<(), LibSQLError> {
+    pub(crate) async fn write(&mut self, key: &str, value: &str) -> Result<(), LibSQLError> {
         let table_name = self.libsql_details.table_name.to_string();
         let next_version = self.get_current_version(key).await? + 1;
         let current_epoch_time: i64 = SystemTime::now()
@@ -115,7 +115,7 @@ impl LibSQLPhysical {
         Ok(())
     }
 
-    pub async fn delete(&mut self, key: &str) -> Result<(), LibSQLError> {
+    pub(crate) async fn delete(&mut self, key: &str) -> Result<(), LibSQLError> {
         let table_name = self.libsql_details.table_name.to_string();
         let current_epoch_time: i64 = SystemTime::now()
             .duration_since(UNIX_EPOCH)

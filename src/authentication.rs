@@ -1,12 +1,12 @@
 use serde_json::Value;
 
 #[derive(Clone, Debug)]
-pub struct Authentication {
+pub(crate) struct Authentication {
     authentication_type: String,
     authentication_details: Value,
 }
 
-pub enum AuthenticationError {
+pub(crate) enum AuthenticationError {
     Error(String),
 }
 
@@ -19,7 +19,7 @@ impl std::fmt::Display for AuthenticationError {
 }
 
 impl Authentication {
-    pub fn new(authentication: crate::configuration::Authentication) -> Authentication {
+    pub(crate) fn new(authentication: crate::configuration::Authentication) -> Authentication {
         match authentication.authentication_type.as_str() {
             "admin_api_key" => Authentication {
                 authentication_type: "admin_api_key".to_string(),
@@ -29,7 +29,7 @@ impl Authentication {
         }
     }
 
-    pub fn is_authorized(
+    pub(crate) fn is_authorized(
         &self,
         auth_token: Option<String>,
         _uri: String,

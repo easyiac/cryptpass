@@ -4,36 +4,36 @@ use std::{fs, sync::OnceLock};
 use tracing::info;
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct ServerTls {
-    pub cert: String,
-    pub key: String,
+pub(crate) struct ServerTls {
+    pub(crate) cert: String,
+    pub(crate) key: String,
 }
 #[derive(Debug, Deserialize, Clone)]
-pub struct Server {
-    pub socket_addr: String,
-    pub tls: Option<ServerTls>,
+pub(crate) struct Server {
+    pub(crate) socket_addr: String,
+    pub(crate) tls: Option<ServerTls>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct Physical {
-    pub physical_type: String,
-    pub physical_details: Value,
+pub(crate) struct Physical {
+    pub(crate) physical_type: String,
+    pub(crate) physical_details: Value,
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct Authentication {
-    pub authentication_type: String,
-    pub authentication_details: Value,
+pub(crate) struct Authentication {
+    pub(crate) authentication_type: String,
+    pub(crate) authentication_details: Value,
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct Configuration {
-    pub server: Server,
-    pub physical: Physical,
-    pub authentication: Authentication,
+pub(crate) struct Configuration {
+    pub(crate) server: Server,
+    pub(crate) physical: Physical,
+    pub(crate) authentication: Authentication,
 }
 
-pub fn load_configuration() -> &'static Configuration {
+pub(crate) fn load_configuration() -> &'static Configuration {
     let mut configuration_file =
         std::env::var("CRUSTPASS_CONFIGURATION_FILE").unwrap_or("".to_string());
     let mut configuration_json =

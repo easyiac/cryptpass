@@ -9,7 +9,7 @@ use axum::{
 };
 use tracing::{debug, info};
 
-pub async fn secret(
+pub(crate) async fn secret(
     method: Method,
     Path(path): Path<String>,
     State(state): State<AppState>,

@@ -1,1 +1,1 @@
-pub mod aes256;
+pub(crate) mod aes256;

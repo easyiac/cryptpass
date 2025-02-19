@@ -4,12 +4,12 @@ use crate::physical::libsql_store::LibSQLPhysical;
 use std::fmt::Display;
 
 #[derive(Clone, Debug)]
-pub enum Physical {
+pub(crate) enum Physical {
     LibSQL(LibSQLPhysical),
 }
 
 #[derive(Debug)]
-pub struct PhysicalError(String);
+pub(crate) struct PhysicalError(String);
 
 impl Display for PhysicalError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -18,14 +18,14 @@ impl Display for PhysicalError {
 }
 
 impl Physical {
-    pub fn new(physical: crate::configuration::Physical) -> Self {
+    pub(crate) fn new(physical: crate::configuration::Physical) -> Self {
         match physical.physical_type.as_str() {
             "libsql" => Physical::LibSQL(LibSQLPhysical::new(physical)),
             _ => panic!("Unsupported storage type"),
         }
     }
 
-    pub async fn read(&mut self, key: &str) -> Result<Option<String>, PhysicalError> {
+    pub(crate) async fn read(&mut self, key: &str) -> Result<Option<String>, PhysicalError> {
         match self {
             Physical::LibSQL(physical_impl) => physical_impl
                 .read(key)
@@ -34,7 +34,7 @@ impl Physical {
         }
     }
 
-    pub async fn write(&mut self, key: &str, value: &str) -> Result<(), PhysicalError> {
+    pub(crate) async fn write(&mut self, key: &str, value: &str) -> Result<(), PhysicalError> {
         match self {
             Physical::LibSQL(physical_impl) => physical_impl
                 .write(key, value)
@@ -43,7 +43,7 @@ impl Physical {
         }
     }
 
-    pub async fn delete(&mut self, key: &str) -> Result<(), PhysicalError> {
+    pub(crate) async fn delete(&mut self, key: &str) -> Result<(), PhysicalError> {
         match self {
             Physical::LibSQL(physical_impl) => physical_impl
                 .delete(key)
