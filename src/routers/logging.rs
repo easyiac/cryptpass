@@ -33,7 +33,8 @@ pub(crate) async fn print_request_response(
     let res = Response::from_parts(parts, Body::from(res_bytes.clone()));
 
     debug!(
-        "Request from {addr} {method} {uri} {user_agent} {status} {req_bytes} -> {res_bytes}",
+        "Request from addr: {addr}, method: {method}, uri: {uri}, user_agent: {user_agent}, status: {status}, \
+        \"{req_bytes}\" -> \"{res_bytes}\"",
         addr = addr,
         method = method,
         uri = uri,
