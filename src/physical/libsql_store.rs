@@ -55,10 +55,10 @@ impl LibSQLPhysical {
         let result = libsql
             .get_connection()
             .await
-            .unwrap_or_else(|e| panic!("Error creating table: secrets_d: {}", e))
+            .unwrap_or_else(|ex| panic!("Error creating table: secrets_d: {}", ex))
             .execute_batch(CREATE_TABLE_SQL)
             .await
-            .unwrap_or_else(|e| panic!("Error creating table: secrets_d: {}", e));
+            .unwrap_or_else(|ex| panic!("Error creating table: secrets_d: {}", ex));
         info!("Table: secrets_d created: {:?}", result);
 
         libsql

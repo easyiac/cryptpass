@@ -38,5 +38,5 @@ async fn main() {
 
     axum_server(server, shared_state)
         .await
-        .unwrap_or_else(|e| panic!("Unable to start server: {}", e))
+        .unwrap_or_else(|ex| panic!("Unable to start server: {}", ex))
 }

@@ -20,23 +20,23 @@ pub(crate) async fn auth_layer(
         auth_token = Some(
             header
                 .to_str()
-                .map_err(|e| {
-                    ServerError::InternalServerError(format!("Error parsing token: {}", e))
+                .map_err(|ex| {
+                    ServerError::InternalServerError(format!("Error parsing token: {}", ex))
                 })?
                 .to_string(),
         );
     }
     let authentication = shared_state
         .write()
-        .map_err(|e| {
-            ServerError::InternalServerError(format!("Error getting shared state: {}", e))
+        .map_err(|ex| {
+            ServerError::InternalServerError(format!("Error getting shared state: {}", ex))
         })?
         .authentication
         .clone();
     let is_authorized = authentication
         .is_authorized(auth_token, method.to_string(), uri.to_string())
         .await
-        .map_err(|e| ServerError::InternalServerError(format!("Error authorizing: {}", e)))?;
+        .map_err(|ex| ServerError::InternalServerError(format!("Error authorizing: {}", ex)))?;
     if is_authorized {
         Ok(next.run(request).await.into_response())
     } else {

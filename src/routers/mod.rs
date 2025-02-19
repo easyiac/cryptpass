@@ -79,8 +79,8 @@ async fn unlock(
 ) -> Result<impl IntoResponse, ServerError> {
     let master_key = &shared_state
         .write()
-        .map_err(|e| {
-            ServerError::InternalServerError(format!("Error getting shared state: {}", e))
+        .map_err(|ex| {
+            ServerError::InternalServerError(format!("Error getting shared state: {}", ex))
         })?
         .master_key;
 
@@ -92,8 +92,8 @@ async fn unlock(
             .status(200)
             .header("Content-Type", "text/plain")
             .body("xx".to_string())
-            .map_err(|e| {
-                ServerError::InternalServerError(format!("Error creating response: {}", e))
+            .map_err(|ex| {
+                ServerError::InternalServerError(format!("Error creating response: {}", ex))
             })
     }
 }
@@ -102,7 +102,7 @@ async fn handle_health() -> Result<impl IntoResponse, ServerError> {
         .status(200)
         .header("Content-Type", "text/plain")
         .body("OK".to_string())
-        .map_err(|e| ServerError::InternalServerError(format!("Error creating response: {}", e)))
+        .map_err(|ex| ServerError::InternalServerError(format!("Error creating response: {}", ex)))
 }
 
 //noinspection HttpUrlsUsage
@@ -110,10 +110,10 @@ pub(crate) async fn axum_server(
     server: Server,
     shared_state: SharedState,
 ) -> Result<(), ServerError> {
-    let addr: SocketAddr = server.socket_addr.parse().map_err(|e| {
+    let addr: SocketAddr = server.socket_addr.parse().map_err(|ex| {
         ServerError::RouterError(format!(
             "Unable to parse address: {}, error: {}",
-            server.socket_addr, e
+            server.socket_addr, ex
         ))
     })?;
     let kv_router = Router::new().route("/{*key}", any(kv));
@@ -130,23 +130,29 @@ pub(crate) async fn axum_server(
         let config =
             RustlsConfig::from_pem(server_tls.cert.into_bytes(), server_tls.key.into_bytes())
                 .await
-                .map_err(|e| {
-                    ServerError::RouterError(format!("Error creating rustls TLS config: {}", e))
+                .map_err(|ex| {
+                    ServerError::RouterError(format!("Error creating rustls TLS config: {}", ex))
                 })?;
         info!("Starting server with https://{}", addr);
         axum_server::bind_rustls(addr, config)
             .serve(app.into_make_service_with_connect_info::<SocketAddr>())
             .await
-            .map_err(|e| {
-                ServerError::RouterError(format!("Error serving without rustls: {}", e.to_string()))
+            .map_err(|ex| {
+                ServerError::RouterError(format!(
+                    "Error serving without rustls: {}",
+                    ex.to_string()
+                ))
             })
     } else {
         info!("Starting server on http://{}", addr);
         axum_server::bind(addr)
             .serve(app.into_make_service_with_connect_info::<SocketAddr>())
             .await
-            .map_err(|e| {
-                ServerError::RouterError(format!("Error serving without rustls: {}", e.to_string()))
+            .map_err(|ex| {
+                ServerError::RouterError(format!(
+                    "Error serving without rustls: {}",
+                    ex.to_string()
+                ))
             })
     }
 }

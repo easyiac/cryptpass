@@ -31,7 +31,7 @@ impl Physical {
             Physical::LibSQL(physical_impl) => physical_impl
                 .read(key)
                 .await
-                .map_err(|e| PhysicalError(format!("Error reading from libsql: {}", e)))?,
+                .map_err(|ex| PhysicalError(format!("Error reading from libsql: {}", ex)))?,
         };
 
         if let Some((value, key_hash)) = result {
@@ -47,7 +47,7 @@ impl Physical {
             Physical::LibSQL(physical_impl) => physical_impl
                 .write(key, value, "key_hash")
                 .await
-                .map_err(|e| PhysicalError(format!("Error writing to libsql: {}", e))),
+                .map_err(|ex| PhysicalError(format!("Error writing to libsql: {}", ex))),
         }
     }
 
@@ -56,7 +56,7 @@ impl Physical {
             Physical::LibSQL(physical_impl) => physical_impl
                 .delete(key)
                 .await
-                .map_err(|e| PhysicalError(format!("Error deleting from libsql: {}", e))),
+                .map_err(|ex| PhysicalError(format!("Error deleting from libsql: {}", ex))),
         }
     }
 }

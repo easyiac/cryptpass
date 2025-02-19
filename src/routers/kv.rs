@@ -19,7 +19,7 @@ pub(crate) async fn kv(
         "GET" => {
             let value = services::kv::read(&key, &mut shared_state)
                 .await
-                .map_err(|e| InternalServerError(format!("Error reading key: {}", e)))?;
+                .map_err(|ex| InternalServerError(format!("Error reading key: {}", ex)))?;
             debug!("Read value: {:?}", value);
             if let Some(value) = value {
                 debug!("Found value: {}", value);
@@ -27,8 +27,8 @@ pub(crate) async fn kv(
                     .status(StatusCode::OK)
                     .header("Content-Type", "text/plain")
                     .body(value)
-                    .map_err(|e| {
-                        InternalServerError(format!("Error creating GET response: {}", e))
+                    .map_err(|ex| {
+                        InternalServerError(format!("Error creating GET response: {}", ex))
                     })?)
             } else {
                 debug!("Key not found: {}", key);
@@ -46,8 +46,8 @@ pub(crate) async fn kv(
                     .status(StatusCode::CREATED)
                     .header("Content-Type", "text/plain")
                     .body("".to_string())
-                    .map_err(|e| {
-                        InternalServerError(format!("Error creating POST response: {}", e))
+                    .map_err(|ex| {
+                        InternalServerError(format!("Error creating POST response: {}", ex))
                     })?)
             }
         }
@@ -59,8 +59,8 @@ pub(crate) async fn kv(
                     .status(StatusCode::NO_CONTENT)
                     .header("Content-Type", "text/plain")
                     .body("".to_string())
-                    .map_err(|e| {
-                        InternalServerError(format!("Error creating DELETE response: {}", e))
+                    .map_err(|ex| {
+                        InternalServerError(format!("Error creating DELETE response: {}", ex))
                     })?)
             }
         }
