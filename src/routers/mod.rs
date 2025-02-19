@@ -4,15 +4,17 @@ mod logging;
 
 use crate::{configuration::Server, routers::authentication::auth_layer, AppState};
 use axum::{
+    extract::State,
     http::StatusCode,
     middleware,
     response::{IntoResponse, Response},
-    routing::any,
+    routing::{any, post},
     Router,
 };
 use axum_server::tls_rustls::RustlsConfig;
 use std::{fmt::Display, net::SocketAddr};
-use tracing::{info, warn};
+use std::sync::{Arc, RwLock};
+use tracing::{info, trace, warn};
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -71,6 +73,7 @@ async fn handle_any() -> Result<impl IntoResponse, ServerError> {
     Err::<Response, ServerError>(ServerError::MethodNotAllowed("Unknown Resource".to_string()))
         as Result<_, ServerError>
 }
+
 async fn handle_health() -> Result<impl IntoResponse, ServerError> {
     Response::builder()
         .status(200)
@@ -78,8 +81,22 @@ async fn handle_health() -> Result<impl IntoResponse, ServerError> {
         .body("OK".to_string())
         .map_err(|e| ServerError::InternalServerError(format!("Error creating response: {}", e)))
 }
+
+async fn unlock(
+    State(state): State<AppState>,
+    body: String,
+) -> Result<impl IntoResponse, ServerError> {
+    let xx = state.master_key.get_or_init(|| body.clone());
+    trace!("Master key set to: {}", xx);
+    Response::builder()
+        .status(200)
+        .header("Content-Type", "text/plain")
+        .body("OK".to_string())
+        .map_err(|e| ServerError::InternalServerError(format!("Error creating response: {}", e)))
+}
+
 //noinspection HttpUrlsUsage
-pub(crate) async fn axum_server(server: Server, app_state: AppState) -> Result<(), ServerError> {
+pub(crate) async fn axum_server(server: Server, app_state: Arc<RwLock<AppState>>) -> Result<(), ServerError> {
     let addr: SocketAddr = server.socket_addr.parse().map_err(|e| {
         ServerError::RouterError(format!(
             "Unable to parse address: {}, error: {}",
@@ -87,6 +104,7 @@ pub(crate) async fn axum_server(server: Server, app_state: AppState) -> Result<(
         ))
     })?;
     let app = Router::new()
+        .route("/unlock", post(unlock))
         .nest("/kv", get_kv_router())
         .route("/{*key}", any(handle_any))
         .route("/health", any(handle_health))

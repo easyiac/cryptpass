@@ -35,7 +35,7 @@ impl Authentication {
         _uri: String,
         resource: String,
     ) -> Result<bool, AuthenticationError> {
-        if resource == "/health" {
+        if resource == "/health" || resource == "/unlock" {
             return Ok(true);
         }
         let mut is_authorized = false;

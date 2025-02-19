@@ -479,6 +479,7 @@ dependencies = [
  "cbc",
  "http-body-util",
  "libsql",
+ "log",
  "serde",
  "serde_json",
  "tokio",

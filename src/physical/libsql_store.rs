@@ -4,14 +4,22 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::info;
 
 const CREATE_TABLE_SQL: &str = r#"
+CREATE TABLE IF NOT EXISTS encryption_keys_d (
+    id_d INTEGER PRIMARY KEY AUTOINCREMENT,
+    encryption_key_hash_d TEXT NOT NULL,
+    encryption_key_d TEXT NOT NULL,
+    master_key_hash_d TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS secrets_d (
 	id_d INTEGER PRIMARY KEY AUTOINCREMENT,
 	key_d TEXT NOT NULL,
 	value_d TEXT NOT NULL,
 	version_d INTEGER DEFAULT (1) NOT NULL,
 	updated_at_d INTEGER DEFAULT (-1) NOT NULL,
-	is_deleted_d INTEGER DEFAULT (0) NOT NULL
+	is_deleted_d INTEGER DEFAULT (0) NOT NULL,
+    encryption_key_hash_d TEXT NOT NULL
 );
+
 CREATE UNIQUE INDEX IF NOT EXISTS secrets_d_key_d_IDX ON secrets_d (key_d,version_d);
 "#;
 
