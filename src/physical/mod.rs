@@ -25,7 +25,7 @@ impl Physical {
         }
     }
 
-    pub(crate) async fn read(&mut self, key: String) -> Result<Option<String>, PhysicalError> {
+    pub(crate) async fn read(&mut self, key: &str) -> Result<Option<String>, PhysicalError> {
         match self {
             Physical::LibSQL(physical_impl) => physical_impl
                 .read(key)
@@ -34,7 +34,7 @@ impl Physical {
         }
     }
 
-    pub(crate) async fn write(&mut self, key: String, value: String) -> Result<(), PhysicalError> {
+    pub(crate) async fn write(&mut self, key: &str, value: &str) -> Result<(), PhysicalError> {
         match self {
             Physical::LibSQL(physical_impl) => physical_impl
                 .write(key, value)
@@ -43,7 +43,7 @@ impl Physical {
         }
     }
 
-    pub(crate) async fn delete(&mut self, key: String) -> Result<(), PhysicalError> {
+    pub(crate) async fn delete(&mut self, key: &str) -> Result<(), PhysicalError> {
         match self {
             Physical::LibSQL(physical_impl) => physical_impl
                 .delete(key)

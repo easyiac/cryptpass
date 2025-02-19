@@ -43,8 +43,8 @@ impl LibSQLPhysical {
 
     async fn get_connection(&mut self) -> Result<Connection, LibSQLError> {
         Builder::new_remote(
-            self.libsql_details.db_url.clone(),
-            self.libsql_details.auth_token.clone(),
+            self.libsql_details.db_url.to_string(),
+            self.libsql_details.auth_token.to_string(),
         )
         .build()
         .await
@@ -53,7 +53,7 @@ impl LibSQLPhysical {
         .map_err(|ex| LibSQLError(format!("Error connecting to libsql: {}", ex)))
     }
 
-    async fn get_current_version(&mut self, key: String) -> Result<i64, LibSQLError> {
+    async fn get_current_version(&mut self, key: &str) -> Result<i64, LibSQLError> {
         let table_name = self.libsql_details.table_name.clone();
         let sql = &format!(
             "SELECT version_d FROM {table_name} WHERE key_d = ? ORDER BY version_d DESC LIMIT 1;"
@@ -73,7 +73,7 @@ impl LibSQLPhysical {
             Ok(0)
         }
     }
-    pub(crate) async fn read(&mut self, key: String) -> Result<Option<String>, LibSQLError> {
+    pub(crate) async fn read(&mut self, key: &str) -> Result<Option<String>, LibSQLError> {
         let table_name = self.libsql_details.table_name.to_string();
         let sql =&format!(
             "SELECT value_d FROM {table_name} WHERE key_d = ? AND is_deleted_d = 0 ORDER BY version_d DESC LIMIT 1;"
@@ -99,7 +99,7 @@ impl LibSQLPhysical {
         }
     }
 
-    pub(crate) async fn write(&mut self, key: String, value: String) -> Result<(), LibSQLError> {
+    pub(crate) async fn write(&mut self, key: &str, value: &str) -> Result<(), LibSQLError> {
         let table_name = self.libsql_details.table_name.to_string();
         let next_version = self.get_current_version(key.clone()).await? + 1;
         let current_epoch_time: i64 = SystemTime::now()
@@ -115,7 +115,7 @@ impl LibSQLPhysical {
         Ok(())
     }
 
-    pub(crate) async fn delete(&mut self, key: String) -> Result<(), LibSQLError> {
+    pub(crate) async fn delete(&mut self, key: &str) -> Result<(), LibSQLError> {
         let table_name = self.libsql_details.table_name.to_string();
         let current_epoch_time: i64 = SystemTime::now()
             .duration_since(UNIX_EPOCH)

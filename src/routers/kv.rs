@@ -15,11 +15,11 @@ pub(crate) async fn kv(
     State(state): State<AppState>,
     body: String,
 ) -> Result<impl IntoResponse, ServerError> {
-    info!("Received request for key: {}", key.clone());
+    info!("Received request for key: {}", key);
 
     match method.as_str() {
         "GET" => {
-            let value = services::kv::read(key.clone(), state)
+            let value = services::kv::read(&key, state)
                 .await
                 .map_err(|e| InternalServerError(format!("Error reading key: {}", e)))?;
             debug!("Read value: {:?}", value);
@@ -39,7 +39,7 @@ pub(crate) async fn kv(
         }
         "POST" => {
             debug!("Received body: {}", body);
-            let write_res = services::kv::write(key, body, state).await;
+            let write_res = services::kv::write(&key, &body, state).await;
 
             if let Err(e) = write_res {
                 Err(InternalServerError(format!("Error writing key: {}", e)))
@@ -54,7 +54,7 @@ pub(crate) async fn kv(
             }
         }
         "DELETE" => {
-            if let Err(e) = services::kv::delete(key, state).await {
+            if let Err(e) = services::kv::delete(&key, state).await {
                 Err(InternalServerError(format!("Error deleting key: {}", e)))
             } else {
                 Ok(Response::builder()

@@ -11,7 +11,7 @@ impl std::fmt::Display for KvError {
     }
 }
 
-pub(crate) async fn read(path: String, state: AppState) -> Result<Option<String>, KvError> {
+pub(crate) async fn read(path: &str, state: AppState) -> Result<Option<String>, KvError> {
     info!("Reading key: {}", path);
 
     check_path(&path).await?;
@@ -23,7 +23,7 @@ pub(crate) async fn read(path: String, state: AppState) -> Result<Option<String>
     Ok(value)
 }
 
-pub(crate) async fn write(path: String, value: String, state: AppState) -> Result<(), KvError> {
+pub(crate) async fn write(path: &str, value: &str, state: AppState) -> Result<(), KvError> {
     info!("Writing key: {} with value: {}", path, value);
     check_path(&path).await?;
     let mut storage = state.physical;
@@ -32,7 +32,7 @@ pub(crate) async fn write(path: String, value: String, state: AppState) -> Resul
     Ok(())
 }
 
-pub(crate) async fn delete(path: String, state: AppState) -> Result<(), KvError> {
+pub(crate) async fn delete(path: &str, state: AppState) -> Result<(), KvError> {
     info!("Deleting key: {}", path);
     check_path(&path).await?;
     let mut storage = state.physical;
