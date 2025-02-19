@@ -3,9 +3,9 @@ use base64::{prelude::BASE64_STANDARD, Engine};
 
 #[allow(dead_code)]
 pub(crate) async fn encryption(
-    key_str_base64: &String,
-    iv_str_base64: &String,
-    plaintext: &String,
+    key_str_base64: &str,
+    iv_str_base64: &str,
+    plaintext: &str,
 ) -> String {
     let key_decoded: Vec<u8> = BASE64_STANDARD.decode(key_str_base64.as_bytes()).unwrap();
     let key: [u8; 32] = key_decoded.try_into().unwrap();
@@ -28,9 +28,9 @@ pub(crate) async fn encryption(
 
 #[allow(dead_code)]
 pub(crate) async fn decryption(
-    key_str_base64: &String,
-    iv_str_base64: &String,
-    encrypted_text_base64: &String,
+    key_str_base64: &str,
+    iv_str_base64: &str,
+    encrypted_text_base64: &str,
 ) -> String {
     let key_decoded: Vec<u8> = BASE64_STANDARD.decode(key_str_base64.as_bytes()).unwrap();
     let key: [u8; 32] = key_decoded.try_into().unwrap();
@@ -54,10 +54,9 @@ pub(crate) async fn decryption(
 #[tokio::test]
 async fn test() {
     let key_str_base64 = "***REMOVED***".to_string();
-    let iv_str_base64 = "+0Vfhn16YpMKYQNOvnP/AA==".to_string();
-    let plaintext = "hello world! this is my plaintext.".to_string();
-    let encrypted_text =
-        "d618sNKZ9ouOIn4M5IiIanT5T14cJTJMxJ0d9xmo/hRf+TtuHB6G6tIkzq4viTSo".to_string();
+    let iv_str_base64 = "5jcK7IMk3+QbNLikFRl3Zw==".to_string();
+    let plaintext = "Hello, World!".to_string();
+    let encrypted_text = "yQp5HF92QfpV/jdmPIDYJQ==".to_string();
     let enc = encryption(&key_str_base64, &iv_str_base64, &plaintext).await;
     println!("{:?}", enc);
     assert_eq!(enc, encrypted_text);
