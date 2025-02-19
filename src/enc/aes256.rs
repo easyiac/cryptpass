@@ -3,14 +3,14 @@ use base64::{prelude::BASE64_STANDARD, Engine};
 
 #[allow(dead_code)]
 pub(crate) async fn encryption(
-    key_str_base64: &str,
-    iv_str_base64: &str,
+    key_base64: &str,
+    iv_base64: &str,
     plaintext: &str,
 ) -> String {
-    let key_decoded: Vec<u8> = BASE64_STANDARD.decode(key_str_base64.as_bytes()).unwrap();
+    let key_decoded: Vec<u8> = BASE64_STANDARD.decode(key_base64.as_bytes()).unwrap();
     let key: [u8; 32] = key_decoded.try_into().unwrap();
 
-    let iv_decoded: Vec<u8> = BASE64_STANDARD.decode(iv_str_base64.as_bytes()).unwrap();
+    let iv_decoded: Vec<u8> = BASE64_STANDARD.decode(iv_base64.as_bytes()).unwrap();
     let iv: [u8; 16] = iv_decoded.try_into().unwrap();
 
     let plaintext_bin: Vec<u8> = plaintext.as_bytes().to_vec();
@@ -28,14 +28,14 @@ pub(crate) async fn encryption(
 
 #[allow(dead_code)]
 pub(crate) async fn decryption(
-    key_str_base64: &str,
-    iv_str_base64: &str,
+    key_base64: &str,
+    iv_base64: &str,
     encrypted_text_base64: &str,
 ) -> String {
-    let key_decoded: Vec<u8> = BASE64_STANDARD.decode(key_str_base64.as_bytes()).unwrap();
+    let key_decoded: Vec<u8> = BASE64_STANDARD.decode(key_base64.as_bytes()).unwrap();
     let key: [u8; 32] = key_decoded.try_into().unwrap();
 
-    let iv_decoded: Vec<u8> = BASE64_STANDARD.decode(iv_str_base64.as_bytes()).unwrap();
+    let iv_decoded: Vec<u8> = BASE64_STANDARD.decode(iv_base64.as_bytes()).unwrap();
     let iv: [u8; 16] = iv_decoded.try_into().unwrap();
 
     let encrypted_text_decoded: Vec<u8> =
@@ -53,14 +53,14 @@ pub(crate) async fn decryption(
 
 #[tokio::test]
 async fn test() {
-    let key_str_base64 = "***REMOVED***".to_string();
-    let iv_str_base64 = "5jcK7IMk3+QbNLikFRl3Zw==".to_string();
+    let key_base64 = "***REMOVED***".to_string();
+    let iv_base64 = "5jcK7IMk3+QbNLikFRl3Zw==".to_string();
     let plaintext = "Hello, World!".to_string();
     let encrypted_text = "yQp5HF92QfpV/jdmPIDYJQ==".to_string();
-    let enc = encryption(&key_str_base64, &iv_str_base64, &plaintext).await;
-    println!("{:?}", enc);
+    let enc = encryption(&key_base64, &iv_base64, &plaintext).await;
+    println!("Encrypted: value: {}", enc);
     assert_eq!(enc, encrypted_text);
-    let dec = decryption(&key_str_base64, &iv_str_base64, &enc).await;
-    println!("{:?}", dec);
+    let dec = decryption(&key_base64, &iv_base64, &enc).await;
+    println!("Decrypted: value: {}", dec);
     assert_eq!(dec, plaintext);
 }
