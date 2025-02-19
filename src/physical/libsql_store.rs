@@ -101,7 +101,7 @@ impl LibSQLPhysical {
 
     pub(crate) async fn write(&mut self, key: &str, value: &str) -> Result<(), LibSQLError> {
         let table_name = self.libsql_details.table_name.to_string();
-        let next_version = self.get_current_version(key.clone()).await? + 1;
+        let next_version = self.get_current_version(key).await? + 1;
         let current_epoch_time: i64 = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|ex| LibSQLError(format!("Error getting current epoch time: {}", ex)))?
