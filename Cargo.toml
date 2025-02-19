@@ -12,7 +12,7 @@ repository = "https://github.com/arpanrec/crustpass.git"
 [dependencies]
 libsql = { version = "0.6.0" }
 tokio = { version = "1.43.0", features = ["full"] }
-axum = "0.8.1"
+axum = { version = "0.8.1", features = ["macros"] }
 aes = "0.8.4"
 cbc = "0.1.2"
 base64 = "0.22.1"
@@ -26,3 +26,4 @@ axum-server = { version = "0.7.1", features = [
 ] }
 http-body-util = "0.1.2"
 uuid = { version = "1.13.2", features = ["v4"] }
+rand = "0.9.0"

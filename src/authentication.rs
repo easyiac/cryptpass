@@ -29,7 +29,7 @@ impl Authentication {
         }
     }
 
-    pub(crate) fn is_authorized(
+    pub(crate) async fn is_authorized(
         &self,
         auth_token: Option<String>,
         _uri: String,

@@ -1,6 +1,6 @@
 use crate::{
     routers::ServerError::{self, InternalServerError, MethodNotAllowed, NotFound},
-    services, AppState,
+    services, SharedState,
 };
 use axum::{
     extract::{Path, State},
@@ -8,18 +8,16 @@ use axum::{
     response::IntoResponse,
 };
 use tracing::{debug, info};
-
 pub(crate) async fn kv(
     method: Method,
     Path(key): Path<String>,
-    State(state): State<AppState>,
+    State(mut shared_state): State<SharedState>,
     body: String,
 ) -> Result<impl IntoResponse, ServerError> {
     info!("Received request for key: {}", key);
-
     match method.as_str() {
         "GET" => {
-            let value = services::kv::read(&key, state)
+            let value = services::kv::read(&key, &mut shared_state)
                 .await
                 .map_err(|e| InternalServerError(format!("Error reading key: {}", e)))?;
             debug!("Read value: {:?}", value);
@@ -39,7 +37,7 @@ pub(crate) async fn kv(
         }
         "POST" => {
             debug!("Received body: {}", body);
-            let write_res = services::kv::write(&key, &body, state).await;
+            let write_res = services::kv::write(&key, &body, &mut shared_state).await;
 
             if let Err(e) = write_res {
                 Err(InternalServerError(format!("Error writing key: {}", e)))
@@ -54,7 +52,7 @@ pub(crate) async fn kv(
             }
         }
         "DELETE" => {
-            if let Err(e) = services::kv::delete(&key, state).await {
+            if let Err(e) = services::kv::delete(&key, &mut shared_state).await {
                 Err(InternalServerError(format!("Error deleting key: {}", e)))
             } else {
                 Ok(Response::builder()
