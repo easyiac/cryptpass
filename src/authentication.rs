@@ -29,13 +29,13 @@ impl Authentication {
         }
     }
 
-    pub(crate) fn is_authorized(
+    pub(crate) async fn is_authorized(
         &self,
         auth_token: Option<String>,
         _uri: String,
         resource: String,
     ) -> Result<bool, AuthenticationError> {
-        if resource == "/health" {
+        if resource == "/health" || resource == "/unlock" {
             return Ok(true);
         }
         let mut is_authorized = false;

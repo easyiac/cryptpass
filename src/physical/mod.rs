@@ -18,9 +18,9 @@ impl Display for PhysicalError {
 }
 
 impl Physical {
-    pub(crate) fn new(physical: crate::configuration::Physical) -> Self {
+    pub(crate) async fn new(physical: crate::configuration::Physical) -> Self {
         match physical.physical_type.as_str() {
-            "libsql" => Physical::LibSQL(LibSQLPhysical::new(physical)),
+            "libsql" => Physical::LibSQL(LibSQLPhysical::new(physical).await),
             _ => panic!("Unsupported storage type"),
         }
     }
