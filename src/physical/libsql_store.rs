@@ -52,13 +52,14 @@ impl LibSQLPhysical {
         let mut libsql = LibSQLPhysical { libsql_details };
         info!("LibSQLPhysical initialized");
         info!("Creating Table: secrets_d");
-        libsql
+        let result = libsql
             .get_connection()
             .await
             .unwrap_or_else(|e| panic!("Error creating table: secrets_d: {}", e))
-            .execute(CREATE_TABLE_SQL, libsql::params![])
+            .execute_batch(CREATE_TABLE_SQL)
             .await
             .unwrap_or_else(|e| panic!("Error creating table: secrets_d: {}", e));
+        info!("Table: secrets_d created: {:?}", result);
 
         libsql
     }
@@ -93,8 +94,11 @@ impl LibSQLPhysical {
             Ok(0)
         }
     }
-    pub(crate) async fn read(&mut self, key: &str) -> Result<Option<String>, LibSQLError> {
-        let sql ="SELECT value_d FROM secrets_d WHERE key_d = ? AND is_deleted_d = 0 ORDER BY version_d DESC LIMIT 1;";
+    pub(crate) async fn read(
+        &mut self,
+        key: &str,
+    ) -> Result<Option<(String, String)>, LibSQLError> {
+        let sql ="SELECT value_d, encryption_key_hash_d FROM secrets_d WHERE key_d = ? AND is_deleted_d = 0 ORDER BY version_d DESC LIMIT 1;";
         let mut rows = self
             .get_connection()
             .await?
@@ -106,27 +110,34 @@ impl LibSQLPhysical {
             .await
             .map_err(|ex| LibSQLError(format!("Error getting next row from libsql: {}", ex)))?
         {
-            Ok(Some(
-                row.get(0).map_err(|ex| {
-                    LibSQLError(format!("Error getting value from libsql: {}", ex))
-                })?,
-            ))
+            let value = row
+                .get(0)
+                .map_err(|ex| LibSQLError(format!("Error getting value from libsql: {}", ex)))?;
+            let encryption_key_hash = row.get(1).map_err(|ex| {
+                LibSQLError(format!("Error getting encryption_key_hash from libsql: {}", ex))
+            })?;
+            Ok(Some((value, encryption_key_hash)))
         } else {
             Ok(None)
         }
     }
 
-    pub(crate) async fn write(&mut self, key: &str, value: &str) -> Result<(), LibSQLError> {
+    pub(crate) async fn write(
+        &mut self,
+        key: &str,
+        value: &str,
+        key_hash: &str,
+    ) -> Result<(), LibSQLError> {
         let next_version = self.get_current_version(key).await? + 1;
         let current_epoch_time: i64 = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|ex| LibSQLError(format!("Error getting current epoch time: {}", ex)))?
             .as_secs() as i64;
         let sql =
-            "INSERT INTO secrets_d (key_d, value_d, version_d, updated_at_d) VALUES (?, ?, ?, ?);";
+            "INSERT INTO secrets_d (key_d, value_d, version_d, updated_at_d, encryption_key_hash_d) VALUES (?, ?, ?, ?, ?);";
         self.get_connection()
             .await?
-            .execute(sql, libsql::params![key, value, next_version, current_epoch_time])
+            .execute(sql, libsql::params![key, value, next_version, current_epoch_time, key_hash])
             .await
             .map_err(|ex| LibSQLError(format!("Error performing libsql write: {}", ex)))?;
         Ok(())

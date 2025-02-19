@@ -1,5 +1,6 @@
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use base64::{prelude::BASE64_STANDARD, Engine};
+use rand::Rng;
 
 #[allow(dead_code)]
 pub(crate) async fn encryption(key_base64: &str, iv_base64: &str, plaintext: &str) -> String {
@@ -59,4 +60,13 @@ async fn test() {
     let dec = decryption(&key_base64, &iv_base64, &enc).await;
     println!("Decrypted: value: {}", dec);
     assert_eq!(dec, plaintext);
+}
+
+fn generate_key() -> (String, String) {
+    let mut rng = rand::rng();
+    let mut key = [0u8; 32];
+    rng.fill(&mut key);
+    let mut iv = [0u8; 16];
+    rng.fill(&mut iv);
+    (BASE64_STANDARD.encode(key), BASE64_STANDARD.encode(iv))
 }
