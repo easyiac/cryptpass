@@ -1,4 +1,4 @@
-use crate::{routers::ServerError, AppState};
+use crate::{routers::ServerError, SharedState};
 use axum::{
     extract::{ConnectInfo, Request, State},
     middleware::Next,
@@ -8,7 +8,7 @@ use std::net::SocketAddr;
 use tracing::info;
 
 pub(crate) async fn auth_layer(
-    State(app_state): State<AppState>,
+    State(shared_state): State<SharedState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     request: Request,
     next: Next,
@@ -26,9 +26,16 @@ pub(crate) async fn auth_layer(
                 .to_string(),
         );
     }
-    let authentication = app_state.authentication.clone();
+    let authentication = shared_state
+        .write()
+        .map_err(|e| {
+            ServerError::InternalServerError(format!("Error getting shared state: {}", e))
+        })?
+        .authentication
+        .clone();
     let is_authorized = authentication
         .is_authorized(auth_token, method.to_string(), uri.to_string())
+        .await
         .map_err(|e| ServerError::InternalServerError(format!("Error authorizing: {}", e)))?;
     if is_authorized {
         Ok(next.run(request).await.into_response())
