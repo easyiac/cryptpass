@@ -1,5 +1,6 @@
 use crate::SharedState;
 use tracing::info;
+
 #[derive(Debug)]
 pub(crate) struct KvError(String);
 
@@ -23,8 +24,17 @@ pub(crate) async fn read(
         .map_err(|ex| KvError(format!("Error getting shared state: {}", ex)))?
         .physical
         .clone();
-
-    Ok(physical.read(path).await.map_err(|ex| KvError(format!("Error reading key: {}", ex)))?)
+    let master_enc_key_lock = shared_state
+        .read()
+        .map_err(|ex| KvError(format!("Error getting shared state: {}", ex)))?
+        .master_key
+        .clone();
+    let master_enc_key =
+        master_enc_key_lock.get().ok_or_else(|| KvError("Master key not set".to_string()))?;
+    Ok(physical
+        .read(path, (master_enc_key.0.as_str(), master_enc_key.1.as_str()), "")
+        .await
+        .map_err(|ex| KvError(format!("Error reading key: {}", ex)))?)
 }
 
 pub(crate) async fn write(
@@ -39,9 +49,15 @@ pub(crate) async fn write(
         .map_err(|ex| KvError(format!("Error getting shared state: {}", ex)))?
         .physical
         .clone();
-
+    let master_enc_key_lock = shared_state
+        .read()
+        .map_err(|ex| KvError(format!("Error getting shared state: {}", ex)))?
+        .master_key
+        .clone();
+    let master_enc_key =
+        master_enc_key_lock.get().ok_or_else(|| KvError("Master key not set".to_string()))?;
     Ok(physical
-        .write(path, value)
+        .write(path, value, (master_enc_key.0.as_str(), master_enc_key.1.as_str()), "")
         .await
         .map_err(|ex| KvError(format!("Error writing key: {}", ex)))?)
 }

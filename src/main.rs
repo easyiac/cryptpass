@@ -1,6 +1,6 @@
 mod authentication;
 mod configuration;
-mod enc;
+mod encryption;
 mod physical;
 mod routers;
 mod services;
@@ -15,7 +15,7 @@ use tracing::{debug, info};
 struct AppState {
     physical: Physical,
     authentication: Authentication,
-    master_key: OnceLock<String>,
+    master_key: OnceLock<(String, String)>, // (aes256:master_key:master_iv, hash(aes256:master_key:master_iv))
     map: HashMap<String, String>,
 }
 type SharedState = Arc<RwLock<AppState>>;

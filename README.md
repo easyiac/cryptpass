@@ -50,8 +50,7 @@ Persistence layer for the seed data.
     ```json
     {
         "db_url": "Database connection string",
-        "auth_token": "Authentication token for the database",
-        "table_name": "Table name for the seed data"
+        "auth_token": "Authentication token for the database"
     }
     ```
 

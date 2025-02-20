@@ -6,9 +6,9 @@ use tracing::info;
 const CREATE_TABLE_SQL: &str = r#"
 CREATE TABLE IF NOT EXISTS encryption_keys_d (
     id_d INTEGER PRIMARY KEY AUTOINCREMENT,
-    encryption_key_hash_d TEXT NOT NULL,
-    encryption_key_d TEXT NOT NULL,
-    master_key_hash_d TEXT NOT NULL
+    encryption_key_hash_d TEXT NOT NULL UNIQUE,
+    encryption_key_encrypted_d TEXT NOT NULL,
+    key_encryptor_hash_d TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS secrets_d (
 	id_d INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -143,7 +143,7 @@ impl LibSQLPhysical {
         Ok(())
     }
 
-    pub(crate) async fn delete(&mut self, key: &str) -> Result<(), LibSQLError> {
+    pub(super) async fn delete(&mut self, key: &str) -> Result<(), LibSQLError> {
         let current_epoch_time: i64 = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|ex| LibSQLError(format!("Error getting current epoch time: {}", ex)))?
@@ -154,6 +154,48 @@ impl LibSQLPhysical {
             .execute(sql, libsql::params![current_epoch_time, key])
             .await
             .map_err(|ex| LibSQLError(format!("Error performing libsql delete: {}", ex)))?;
+        Ok(())
+    }
+    pub(super) async fn get_encryption_key(
+        &mut self,
+        key_hash: &str,
+    ) -> Result<String, LibSQLError> {
+        let sql = "SELECT encryption_key_encrypted_d FROM encryption_keys_d WHERE encryption_key_hash_d = ?;";
+        let mut rows =
+            self.get_connection().await?.query(sql, libsql::params![key_hash]).await.map_err(
+                |ex| LibSQLError(format!("Error performing libsql get_encryption_key: {}", ex)),
+            )?;
+        if let Some(row) = rows
+            .next()
+            .await
+            .map_err(|ex| LibSQLError(format!("Error getting next row from libsql: {}", ex)))?
+        {
+            row.get(0).map_err(|ex| {
+                LibSQLError(format!("Error getting encryption_key from libsql: {}", ex))
+            })
+        } else {
+            Err(LibSQLError("Encryption key not found".to_string()))
+        }
+    }
+    pub(super) async fn write_encryption_key(
+        &mut self,
+        key_encrypted: &str,
+        key_hash: &str,
+        encryptor_hash: &str,
+    ) -> Result<(), LibSQLError> {
+        let existing_key = self.get_encryption_key(key_hash).await;
+        if existing_key.is_ok() {
+            return Ok(());
+        }
+
+        let sql = "INSERT INTO encryption_keys_d (encryption_key_hash_d, encryption_key_encrypted_d, key_encryptor_hash_d) VALUES (?, ?, ?);";
+        self.get_connection()
+            .await?
+            .execute(sql, libsql::params![key_hash, key_encrypted, encryptor_hash])
+            .await
+            .map_err(|ex| {
+                LibSQLError(format!("Error performing libsql write_encryption_key: {}", ex))
+            })?;
         Ok(())
     }
 }
