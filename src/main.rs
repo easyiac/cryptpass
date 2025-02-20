@@ -6,8 +6,10 @@ mod routers;
 mod services;
 
 use crate::{authentication::Authentication, physical::Physical, routers::axum_server};
-use std::collections::HashMap;
-use std::sync::{Arc, OnceLock, RwLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, OnceLock, RwLock},
+};
 use tracing::{debug, info};
 
 #[derive(Clone, Debug)]

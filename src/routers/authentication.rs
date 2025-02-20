@@ -7,7 +7,7 @@ use axum::{
 use std::net::SocketAddr;
 use tracing::info;
 
-pub(crate) async fn auth_layer(
+pub(super) async fn auth_layer(
     State(shared_state): State<SharedState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     request: Request,

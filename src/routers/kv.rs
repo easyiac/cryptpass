@@ -8,7 +8,7 @@ use axum::{
     response::IntoResponse,
 };
 use tracing::{debug, info};
-pub(crate) async fn kv(
+pub(super) async fn kv(
     method: Method,
     Path(key): Path<String>,
     State(shared_state): State<SharedState>,

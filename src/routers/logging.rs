@@ -9,7 +9,7 @@ use http_body_util::BodyExt;
 use std::net::SocketAddr;
 use tracing::debug;
 
-pub(crate) async fn print_request_response(
+pub(super) async fn print_request_response(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     method: Method,
     request: Request,

@@ -7,8 +7,8 @@ use crate::{
     routers::{authentication::auth_layer, kv::kv},
     SharedState,
 };
-use axum::extract::State;
 use axum::{
+    extract::State,
     http::StatusCode,
     middleware,
     response::{IntoResponse, Response},
