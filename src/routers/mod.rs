@@ -2,6 +2,7 @@ mod authentication;
 mod kv;
 mod logging;
 
+use crate::routers::logging::print_request_response;
 use crate::{
     configuration::Server,
     routers::{authentication::auth_layer, kv::kv},
@@ -78,14 +79,6 @@ async fn unlock(
     State(shared_state): State<SharedState>,
     body: String,
 ) -> Result<impl IntoResponse, ServerError> {
-    // (aes256:master_key:master_iv, hash(aes256:master_key:master_iv))
-    let master_key_iv = body.split(':').collect::<Vec<&str>>();
-    if master_key_iv.len() != 3 {
-        return Err(ServerError::Unauthorized("Invalid master key format".to_string()));
-    }
-    if master_key_iv[0] != "aes256" {
-        return Err(ServerError::Unauthorized("Invalid master key format".to_string()));
-    }
     let mut hasher = Sha256::new();
     hasher.update(body.as_bytes());
     let hex_string = hex::encode(hasher.finalize());
@@ -129,13 +122,13 @@ pub(crate) async fn axum_server(
     })?;
     let kv_router = Router::new().route("/{*key}", any(kv));
     let app = Router::new()
+        .layer(middleware::from_fn(print_request_response))
         .nest("/kv", kv_router)
         .route("/unlock", post(unlock))
         .route("/{*key}", any(handle_any))
         .route("/health", any(handle_health))
         .layer(middleware::from_fn_with_state(Arc::clone(&shared_state), auth_layer))
-        .with_state(Arc::clone(&shared_state))
-        .layer(middleware::from_fn(logging::print_request_response));
+        .with_state(Arc::clone(&shared_state));
 
     if let Some(server_tls) = server.tls {
         let config =

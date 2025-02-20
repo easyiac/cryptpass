@@ -6,6 +6,7 @@ mod routers;
 mod services;
 
 use crate::{authentication::Authentication, physical::Physical, routers::axum_server};
+use sha2::{Digest, Sha256};
 use std::sync::{Arc, OnceLock, RwLock};
 use tracing::{debug, info};
 
@@ -30,8 +31,19 @@ async fn main() {
         authentication: Authentication::new(configuration.authentication.clone()),
         master_key: OnceLock::new(),
     };
-
     let shared_state = Arc::new(RwLock::new(app_state));
+    if configuration.master_key.is_some() {
+        let master_key = configuration.clone().master_key.unwrap();
+        shared_state.write().expect("Unable to write to shared state").master_key.get_or_init(
+            || {
+                let mut hasher = Sha256::new();
+                hasher.update(master_key.as_bytes());
+                let hasher = hasher.finalize();
+                info!("Master key hash: {}", hex::encode(hasher));
+                (master_key, hex::encode(hasher))
+            },
+        );
+    }
 
     axum_server(server, shared_state)
         .await

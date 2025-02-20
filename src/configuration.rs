@@ -31,6 +31,7 @@ pub(crate) struct Configuration {
     pub(crate) server: Server,
     pub(crate) physical: Physical,
     pub(crate) authentication: Authentication,
+    pub(crate) master_key: Option<String>,
 }
 
 pub(crate) fn load_configuration() -> &'static Configuration {
