@@ -6,18 +6,16 @@ mod routers;
 mod services;
 
 use crate::{authentication::Authentication, physical::Physical, routers::axum_server};
-use std::{
-    collections::HashMap,
-    sync::{Arc, OnceLock, RwLock},
-};
+use std::sync::{Arc, OnceLock, RwLock};
 use tracing::{debug, info};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct AppState {
     physical: Physical,
     authentication: Authentication,
     master_key: OnceLock<(String, String)>, // (aes256:master_key:master_iv, hash(aes256:master_key:master_iv))
 }
+
 type SharedState = Arc<RwLock<AppState>>;
 
 #[tokio::main]
