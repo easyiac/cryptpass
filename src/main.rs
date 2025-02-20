@@ -17,7 +17,6 @@ struct AppState {
     physical: Physical,
     authentication: Authentication,
     master_key: OnceLock<(String, String)>, // (aes256:master_key:master_iv, hash(aes256:master_key:master_iv))
-    map: HashMap<String, String>,
 }
 type SharedState = Arc<RwLock<AppState>>;
 
@@ -32,7 +31,6 @@ async fn main() {
         physical: Physical::new(configuration.physical.clone()).await,
         authentication: Authentication::new(configuration.authentication.clone()),
         master_key: OnceLock::new(),
-        map: HashMap::new(),
     };
 
     let shared_state = Arc::new(RwLock::new(app_state));
