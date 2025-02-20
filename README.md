@@ -12,9 +12,9 @@ Priorities: `CRUSTPASS_CONFIGURATION_FILE` > `CRUSTPASS_CONFIGURATION_JSON`
 
 ```json
 {
-    "server" : "See Server",
-    "physical": "See Physical",
-    "authentication": "See Authentication"
+  "server": "See Server",
+  "physical": "See Physical",
+  "authentication": "See Authentication"
 }
 ```
 
@@ -26,11 +26,11 @@ Server Settings. `tls` is optional.
 
 ```json
 {
-    "socket_addr": "Listen address for the server, Example: `127.0.0.1:8080`",
-    "tls": {
-        "cert": "PEM encoded certificate",
-        "key": "PEM encoded private key"
-    }
+  "socket_addr": "Listen address for the server, Example: `127.0.0.1:8080`",
+  "tls": {
+    "cert": "PEM encoded certificate",
+    "key": "PEM encoded private key"
+  }
 }
 ```
 
@@ -40,8 +40,8 @@ Persistence layer for the seed data.
 
 ```json
 {
-    "physical_type": "Type of physical storage",
-    "physical_details": "Details for the physical storage"
+  "physical_type": "Type of physical storage",
+  "physical_details": "Details for the physical storage"
 }
 ```
 
@@ -60,8 +60,8 @@ Authentication layer for the API.
 
 ```json
 {
-    "authentication_type": "Type of authentication",
-    "authentication_details": "Details for the authentication"
+  "authentication_type": "Type of authentication",
+  "authentication_details": "Details for the authentication"
 }
 ```
 

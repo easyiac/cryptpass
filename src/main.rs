@@ -10,7 +10,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, OnceLock, RwLock};
 use tracing::{debug, info};
 
-#[allow(dead_code)]
 #[derive(Clone, Debug)]
 struct AppState {
     physical: Physical,

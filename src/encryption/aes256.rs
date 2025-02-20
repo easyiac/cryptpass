@@ -40,7 +40,6 @@ async fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), Aes256C
     Ok((key, iv))
 }
 
-#[allow(dead_code)]
 pub(super) async fn encryption(
     key_iv_base64: &str,
     plaintext: &str,
@@ -60,7 +59,6 @@ pub(super) async fn encryption(
     Ok(ct_base64.to_string())
 }
 
-#[allow(dead_code)]
 pub(super) async fn decryption(
     key_iv_base64: &str,
     encrypted_text_base64: &str,
