@@ -122,11 +122,11 @@ pub(crate) async fn axum_server(
     })?;
     let kv_router = Router::new().route("/{*key}", any(kv));
     let app = Router::new()
-        .layer(middleware::from_fn(print_request_response))
         .nest("/kv", kv_router)
         .route("/unlock", post(unlock))
         .route("/{*key}", any(handle_any))
         .route("/health", any(handle_health))
+        .layer(middleware::from_fn(print_request_response))
         .layer(middleware::from_fn_with_state(Arc::clone(&shared_state), auth_layer))
         .with_state(Arc::clone(&shared_state));
 
