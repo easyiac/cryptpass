@@ -12,7 +12,10 @@ impl std::fmt::Display for KvError {
     }
 }
 
-pub(crate) async fn read(path: &str, shared_state: SharedState) -> Result<Option<String>, KvError> {
+pub(crate) async fn read(
+    path: &str,
+    shared_state: &SharedState,
+) -> Result<Option<String>, KvError> {
     info!("Reading key: {}", path);
 
     check_path(&path).await.map_err(|ex| KvError(format!("Error checking path: {}", ex)))?;
@@ -33,7 +36,7 @@ pub(crate) async fn read(path: &str, shared_state: SharedState) -> Result<Option
 pub(crate) async fn write(
     path: &str,
     value: &str,
-    shared_state: SharedState,
+    shared_state: &SharedState,
 ) -> Result<(), KvError> {
     info!("Writing key: {} with value: {}", path, value);
     check_path(&path).await?;
@@ -51,7 +54,7 @@ pub(crate) async fn write(
         .map_err(|ex| KvError(format!("Error writing key: {}", ex)))?)
 }
 
-pub(crate) async fn delete(path: &str, shared_state: SharedState) -> Result<(), KvError> {
+pub(crate) async fn delete(path: &str, shared_state: &SharedState) -> Result<(), KvError> {
     info!("Deleting key: {}", path);
     check_path(&path).await?;
     let mut physical = shared_state

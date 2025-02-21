@@ -17,7 +17,7 @@ pub(super) async fn kv(
     info!("Received request for key: {}", key);
     match method.as_str() {
         "GET" => {
-            let value = services::kv::read(&key, shared_state)
+            let value = services::kv::read(&key, &shared_state)
                 .await
                 .map_err(|ex| InternalServerError(format!("Error reading key: {}", ex)))?;
             debug!("Read value: {:?}", value);
@@ -37,7 +37,7 @@ pub(super) async fn kv(
         }
         "POST" => {
             debug!("Received body: {}", body);
-            let write_res = services::kv::write(&key, &body, shared_state).await;
+            let write_res = services::kv::write(&key, &body, &shared_state).await;
 
             if let Err(e) = write_res {
                 Err(InternalServerError(format!("Error writing key: {}", e)))
@@ -52,7 +52,7 @@ pub(super) async fn kv(
             }
         }
         "DELETE" => {
-            if let Err(e) = services::kv::delete(&key, shared_state).await {
+            if let Err(e) = services::kv::delete(&key, &shared_state).await {
                 Err(InternalServerError(format!("Error deleting key: {}", e)))
             } else {
                 Ok(Response::builder()
