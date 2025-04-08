@@ -28,6 +28,7 @@ docker buildx build -f /tmp/cryptpass-build.Dockerfile -t cryptpass-builder:1 .
 
 docker run --rm \
     -v "$(pwd)/target/:/src/target/" \
+    --network none \
     -v "$(pwd)/CRYPTPASS_VERSION:/src/CRYPTPASS_VERSION" \
     -e CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
     -e CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
@@ -37,6 +38,7 @@ docker run --rm \
 
 docker run --rm \
     -v "$(pwd)/target/:/src/target/" \
+    --network none \
     -v "$(pwd)/CRYPTPASS_VERSION:/src/CRYPTPASS_VERSION" \
     cryptpass-builder:1 \
     /bin/bash -c "cargo build -j $(nproc) --release --target x86_64-unknown-linux-gnu"
