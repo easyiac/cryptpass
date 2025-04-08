@@ -3,5 +3,6 @@ useDefault = true
 
 [allowlist]
 paths = [
-  '''vendor/'''
+  '''vendor/''',
+  '''target/'''
 ]
