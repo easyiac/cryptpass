@@ -88,7 +88,7 @@ pub(super) fn decryption(
 async fn test() {
     println!("{:?}", generate_key());
     let key_base64 =
-        "***REMOVED***:$:5jcK7IMk3+QbNLikFRl3Zw==".to_string(); //gitleaks:allow
+        "5jcK7IMk3+QbNLikFRl3Zwgl9xagKD87s5dT2UqaSR4=:$:5jcK7IMk3+QbNLikFRl3Zw==".to_string(); //gitleaks:allow
     let plaintext = "Hello, World!".to_string();
     let encrypted_text = "enc:$:AES256CBC:$:yQp5HF92QfpV/jdmPIDYJQ==".to_string();
     let enc = encryption(&key_base64, &plaintext).expect("Error encrypting");
