@@ -18,3 +18,8 @@ target/
 
 .vscode
 foo*
+*.sqlite3
+*.log
+*.egg-info
+*.egg
+*.egg-info/

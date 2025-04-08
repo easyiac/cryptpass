@@ -1,24 +1,21 @@
+mod admin;
 mod authentication;
-mod kv;
 mod logging;
+mod secrets;
 
-use crate::routers::logging::print_request_response;
 use crate::{
-    configuration::Server,
-    routers::{authentication::auth_layer, kv::kv},
-    SharedState,
+    routers::{authentication::auth_layer, logging::print_request_response},
+    AppState,
 };
 use axum::{
-    extract::State,
     http::StatusCode,
     middleware,
     response::{IntoResponse, Response},
-    routing::{any, post},
+    routing::any,
     Router,
 };
 use axum_server::tls_rustls::RustlsConfig;
-use sha2::{Digest, Sha256};
-use std::{fmt::Display, net::SocketAddr, sync::Arc};
+use std::{fmt::Display, net::SocketAddr};
 use tracing::{info, warn};
 use uuid::Uuid;
 
@@ -29,7 +26,9 @@ pub(crate) enum ServerError {
     InternalServerError(String),
     Unauthorized(String),
     MethodNotAllowed(String),
+    BadRequest(String),
 }
+
 impl Display for ServerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -38,6 +37,7 @@ impl Display for ServerError {
             ServerError::Unauthorized(e) => write!(f, "Unauthorized: {}", e),
             ServerError::MethodNotAllowed(e) => write!(f, "Method Not Allowed: {}", e),
             ServerError::RouterError(e) => write!(f, "Router Error: {}", e),
+            ServerError::BadRequest(e) => write!(f, "Bad Request: {}", e),
         }
     }
 }
@@ -45,26 +45,30 @@ impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
         match self {
             ServerError::NotFound(e) => {
-                (StatusCode::NOT_FOUND, format!("Resource Not Found: {}", e)).into_response()
+                let error_body = serde_json::json!({ "error": e });
+                (StatusCode::NOT_FOUND, axum::Json(error_body)).into_response()
             }
             ServerError::InternalServerError(e) => {
                 let random_uuid = Uuid::new_v4().to_string();
                 warn!("Internal Server Error: {} - {}", random_uuid, e);
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Internal Server Error: Check logs for {}", random_uuid),
-                )
-                    .into_response()
+                let error_body =
+                    serde_json::json!({ "error": "Internal Server Error", "uuid": random_uuid });
+                (StatusCode::INTERNAL_SERVER_ERROR, axum::Json(error_body)).into_response()
             }
             ServerError::Unauthorized(e) => {
-                (StatusCode::UNAUTHORIZED, format!("Unauthorized: {}", e)).into_response()
+                let error_body = serde_json::json!({ "error": e });
+                (StatusCode::UNAUTHORIZED, axum::Json(error_body)).into_response()
             }
             ServerError::MethodNotAllowed(e) => {
-                (StatusCode::METHOD_NOT_ALLOWED, format!("Method Not Allowed: {}", e))
-                    .into_response()
+                let error_body = serde_json::json!({ "error": e });
+                (StatusCode::METHOD_NOT_ALLOWED, axum::Json(error_body)).into_response()
             }
             ServerError::RouterError(e) => {
                 panic!("Router Error, RouterErrors are not meant to be returned: {}", e)
+            }
+            ServerError::BadRequest(e) => {
+                let error_body = serde_json::json!({ "error": e });
+                (StatusCode::BAD_REQUEST, axum::Json(error_body)).into_response()
             }
         }
     }
@@ -75,32 +79,6 @@ async fn handle_any() -> Result<impl IntoResponse, ServerError> {
         as Result<_, ServerError>
 }
 
-async fn unlock(
-    State(shared_state): State<SharedState>,
-    body: String,
-) -> Result<impl IntoResponse, ServerError> {
-    let mut hasher = Sha256::new();
-    hasher.update(body.as_bytes());
-    let hex_string = hex::encode(hasher.finalize());
-    let master_key = &mut shared_state
-        .write()
-        .map_err(|ex| {
-            ServerError::InternalServerError(format!("Error getting shared state: {}", ex))
-        })?
-        .master_key;
-    if let Some((_, hash)) = master_key.get() {
-        Err(ServerError::MethodNotAllowed(format!("Master key already set, hash: {}", hash)))
-    } else {
-        master_key.get_or_init(|| (body.to_string(), hex_string.clone()));
-        Response::builder()
-            .status(200)
-            .header("Content-Type", "text/plain")
-            .body(format!("Master key set: {}", hex_string))
-            .map_err(|ex| {
-                ServerError::InternalServerError(format!("Error creating response: {}", ex))
-            })
-    }
-}
 async fn handle_health() -> Result<impl IntoResponse, ServerError> {
     Response::builder()
         .status(200)
@@ -109,34 +87,31 @@ async fn handle_health() -> Result<impl IntoResponse, ServerError> {
         .map_err(|ex| ServerError::InternalServerError(format!("Error creating response: {}", ex)))
 }
 
-//noinspection HttpUrlsUsage
-pub(crate) async fn axum_server(
-    server: Server,
-    shared_state: SharedState,
-) -> Result<(), ServerError> {
-    let addr: SocketAddr = server.socket_addr.parse().map_err(|ex| {
-        ServerError::RouterError(format!(
-            "Unable to parse address: {}, error: {}",
-            server.socket_addr, ex
-        ))
+pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), ServerError> {
+    let configuration = crate::config::INSTANCE.get().expect("Configuration not initialized.");
+    let server = &configuration.server.clone();
+    let socket_addr = format!("0.0.0.0:{}", server.port.to_string().as_str());
+    let addr: SocketAddr = socket_addr.parse().map_err(|ex| {
+        ServerError::RouterError(format!("Unable to parse address: {}, error: {}", socket_addr, ex))
     })?;
-    let kv_router = Router::new().route("/{*key}", any(kv));
     let app = Router::new()
-        .nest("/kv", kv_router)
-        .route("/unlock", post(unlock))
+        .nest("/api/v1/admin", admin::api())
+        .route("/api/v1/secrets/{*key}", any(secrets::api))
         .route("/{*key}", any(handle_any))
         .route("/health", any(handle_health))
+        .layer(middleware::from_fn_with_state(shared_state.clone(), auth_layer))
         .layer(middleware::from_fn(print_request_response))
-        .layer(middleware::from_fn_with_state(Arc::clone(&shared_state), auth_layer))
-        .with_state(Arc::clone(&shared_state));
+        .with_state(shared_state);
 
-    if let Some(server_tls) = server.tls {
-        let config =
-            RustlsConfig::from_pem(server_tls.cert.into_bytes(), server_tls.key.into_bytes())
-                .await
-                .map_err(|ex| {
-                    ServerError::RouterError(format!("Error creating rustls TLS config: {}", ex))
-                })?;
+    if let Some(server_tls) = server.clone().tls {
+        let config = RustlsConfig::from_pem(
+            server_tls.ssl_cert_pem.into_bytes(),
+            server_tls.ssl_key_pem.into_bytes(),
+        )
+        .await
+        .map_err(|ex| {
+            ServerError::RouterError(format!("Error creating rustls TLS config: {}", ex))
+        })?;
         info!("Starting server with https://{}", addr);
         axum_server::bind_rustls(addr, config)
             .serve(app.into_make_service_with_connect_info::<SocketAddr>())

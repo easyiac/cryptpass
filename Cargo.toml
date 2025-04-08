@@ -1,31 +1,42 @@
 [package]
-name = "crustpass"
-version = "0.0.1"
+name = "cryptpass"
+version = "1.0.7"
 edition = "2021"
 rust-version = "1.84.1"
 description = "Manage seed data for my home lab."
 license-file = "LICENSE"
-documentation = "https://github.com/arpanrec/crustpass/blob/main/README.md"
-homepage = "https://github.com/arpanrec/crustpass/blob/main/README.md"
-repository = "https://github.com/arpanrec/crustpass.git"
 
 [dependencies]
-libsql = { version = "0.6.0" }
-tokio = { version = "1.43.0", features = ["full"] }
-axum = "0.8.1"
+tokio = { version = "1.44.1", features = ["full"] }
+axum = { version = "0.8.3", features = ["macros"] }
 aes = "0.8.4"
 cbc = "0.1.2"
 base64 = "0.22.1"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19" }
-serde_json = "1.0.138"
-serde = { version = "1.0.217", features = ["derive"] }
-axum-server = { version = "0.7.1", features = [
+serde_json = "1.0.140"
+serde = { version = "1.0.219", features = ["derive"] }
+axum-server = { version = "0.7.2", features = [
     "tls-rustls",
     "tls-rustls-no-provider",
 ] }
-http-body-util = "0.1.2"
-uuid = { version = "1.13.2", features = ["v4"] }
+http-body-util = "0.1.3"
+uuid = { version = "1.16.0", features = ["v4"] }
 rand = "0.9.0"
 sha2 = { version = "0.10.8", features = ["asm"] }
 hex = "0.4.3"
+diesel = { version = "2.2.9", features = [
+    "sqlite",
+    "returning_clauses_for_sqlite_3_35",
+] }
+diesel_migrations = { version = "2.2.0", features = ["sqlite"] }
+deadpool-diesel = { version = "0.6.1", features = [
+    "sqlite",
+    "tracing",
+    "serde",
+    "rt_tokio_1",
+] }
+libsqlite3-sys = { version = "0.32.0", features = [
+    "bundled",
+    "cc",
+] } # This requires a C compiler

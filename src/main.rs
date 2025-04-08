@@ -1,51 +1,62 @@
-mod authentication;
-mod configuration;
+mod auth;
+mod config;
 mod encryption;
 mod physical;
 mod routers;
-mod services;
 
-use crate::{authentication::Authentication, physical::Physical, routers::axum_server};
-use sha2::{Digest, Sha256};
-use std::sync::{Arc, OnceLock, RwLock};
-use tracing::{debug, info};
+use crate::{auth::root::create_root_user, routers::axum_server};
+use deadpool_diesel::{sqlite::Pool, Manager, Runtime};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use tracing::{info, warn};
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 #[derive(Clone)]
 struct AppState {
-    physical: Physical,
-    authentication: Authentication,
-    master_key: OnceLock<(String, String)>, // (aes256:master_key:master_iv, hash(aes256:master_key:master_iv))
+    pub(crate) pool: Pool,
 }
-
-type SharedState = Arc<RwLock<AppState>>;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
     info!("Starting Application...");
-    let configuration = configuration::load_configuration();
-    debug!("Server configuration: {:?}", configuration);
-    let server = configuration.server.clone();
-    let app_state = AppState {
-        physical: Physical::new(configuration.physical.clone()).await,
-        authentication: Authentication::new(configuration.authentication.clone()),
-        master_key: OnceLock::new(),
-    };
-    let shared_state = Arc::new(RwLock::new(app_state));
-    if configuration.master_key.is_some() {
-        let master_key = configuration.clone().master_key.unwrap();
-        shared_state.write().expect("Unable to write to shared state").master_key.get_or_init(
-            || {
-                let mut hasher = Sha256::new();
-                hasher.update(master_key.as_bytes());
-                let hasher = hasher.finalize();
-                info!("Master key hash: {}", hex::encode(hasher));
-                (master_key, hex::encode(hasher))
-            },
-        );
+    config::load_configuration();
+    let configuration = config::INSTANCE.get().expect("Configuration not initialized");
+
+    if let Some(master_enc_key) = &configuration.physical.master_encryption_key {
+        physical::MASTER_ENCRYPTION_KEY
+            .set({
+                warn!("Setting physical master encryption key from configuration which is not recommended. Use /admin/unlock endpoint instead.");
+                info!("Encryption key hash: {}", encryption::hash(master_enc_key));
+                (master_enc_key.clone(), encryption::hash(master_enc_key))
+            })
+            .expect("Physical master encryption key set failed");
+    } else {
+        warn!("No master encryption key provided in configuration. Use /admin/unlock endpoint to set it.");
     }
 
-    axum_server(server, shared_state)
-        .await
-        .unwrap_or_else(|ex| panic!("Unable to start server: {}", ex))
+    let manager = Manager::new(
+        format!("{}/cryptpass.sqlite3", configuration.physical.config.data_dir),
+        Runtime::Tokio1,
+    );
+
+    let pool = Pool::builder(manager).build().expect("Failed to build pool");
+
+    {
+        let conn = pool.get().await.unwrap();
+        conn.interact(|conn| conn.run_pending_migrations(MIGRATIONS).map(|_| ()))
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    info!("Migrations completed");
+
+    {
+        let conn = pool.get().await.unwrap();
+        conn.interact(|conn| create_root_user(conn)).await.unwrap().unwrap();
+    }
+
+    let app_state = AppState { pool };
+    axum_server(app_state).await.unwrap_or_else(|ex| panic!("Unable to start server: {}", ex))
 }

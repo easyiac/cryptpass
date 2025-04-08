@@ -4,3 +4,8 @@
 !tests/
 !vendor/
 !.cargo/
+!migrations/
+!vendor/
+!*.toml
+!*.rs
+!CRYPTPASS_VERSION

@@ -10,19 +10,14 @@ impl std::fmt::Display for Aes256CbcEncError {
         write!(f, "Aes256CbcEncError: {}", self.0)
     }
 }
-
-async fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), Aes256CbcEncError> {
-    let key_iv_base64_vec = key_iv_base64.split(':').collect::<Vec<&str>>();
-    if key_iv_base64_vec.len() != 3 {
+fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), Aes256CbcEncError> {
+    let key_iv_base64_vec = key_iv_base64.split(":$:").collect::<Vec<&str>>();
+    if key_iv_base64_vec.len() != 2 {
         Aes256CbcEncError("Invalid key_iv_base64".to_string());
     }
 
-    if key_iv_base64_vec[0] != "aes256" {
-        Aes256CbcEncError("Invalid key_iv_base64".to_string());
-    }
-
-    let key_base64 = key_iv_base64_vec[1];
-    let iv_base64 = key_iv_base64_vec[2];
+    let key_base64 = key_iv_base64_vec[0];
+    let iv_base64 = key_iv_base64_vec[1];
 
     let key_decoded: Vec<u8> = BASE64_STANDARD
         .decode(key_base64.as_bytes())
@@ -40,11 +35,11 @@ async fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), Aes256C
     Ok((key, iv))
 }
 
-pub(super) async fn encryption(
+pub(super) fn encryption(
     key_iv_base64: &str,
     plaintext: &str,
 ) -> Result<String, Aes256CbcEncError> {
-    let (key, iv) = build_keys(key_iv_base64).await?;
+    let (key, iv) = build_keys(key_iv_base64)?;
 
     let plaintext_bin: Vec<u8> = plaintext.as_bytes().to_vec();
     type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
@@ -55,18 +50,29 @@ pub(super) async fn encryption(
     let ct = Aes256CbcEnc::new(&key.into(), &iv.into())
         .encrypt_padded_mut::<Pkcs7>(&mut buf, pt_len)
         .map_err(|ex| Aes256CbcEncError(format!("Error encrypting: {}", ex)))?;
-    let ct_base64 = BASE64_STANDARD.encode(&ct);
-    Ok(ct_base64.to_string())
+    let ct_base64 = format!("enc:$:AES256CBC:$:{}", BASE64_STANDARD.encode(&ct));
+    Ok(ct_base64)
 }
 
-pub(super) async fn decryption(
+pub(super) fn decryption(
     key_iv_base64: &str,
-    encrypted_text_base64: &str,
+    prefix_encrypted_text_base64: &str,
 ) -> Result<String, Aes256CbcEncError> {
-    let (key, iv) = build_keys(key_iv_base64).await?;
+    let (key, iv) = build_keys(key_iv_base64)?;
+
+    let prefix_encrypted_text_base64_split =
+        prefix_encrypted_text_base64.split("$:").collect::<Vec<&str>>();
+
+    if prefix_encrypted_text_base64_split.len() != 3
+        && prefix_encrypted_text_base64_split[1] != "AES256CBC"
+    {
+        return Err(Aes256CbcEncError(
+            "Invalid data, it should start with enc:$:AES256CBC:$:".to_string(),
+        ));
+    }
 
     let encrypted_text_decoded: Vec<u8> =
-        BASE64_STANDARD.decode(encrypted_text_base64.as_bytes()).unwrap();
+        BASE64_STANDARD.decode(prefix_encrypted_text_base64_split[2].as_bytes()).unwrap();
     let encrypted_text_bin: Vec<u8> = encrypted_text_decoded.to_vec();
     type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
 
@@ -80,24 +86,24 @@ pub(super) async fn decryption(
 
 #[tokio::test]
 async fn test() {
-    println!("{:?}", generate_key().await);
+    println!("{:?}", generate_key());
     let key_base64 =
-        "aes256:***REMOVED***:5jcK7IMk3+QbNLikFRl3Zw==".to_string();
+        "***REMOVED***:$:5jcK7IMk3+QbNLikFRl3Zw==".to_string(); //gitleaks:allow
     let plaintext = "Hello, World!".to_string();
-    let encrypted_text = "yQp5HF92QfpV/jdmPIDYJQ==".to_string();
-    let enc = encryption(&key_base64, &plaintext).await.expect("Error encrypting");
+    let encrypted_text = "enc:$:AES256CBC:$:yQp5HF92QfpV/jdmPIDYJQ==".to_string();
+    let enc = encryption(&key_base64, &plaintext).expect("Error encrypting");
     println!("Encrypted: value: {}", enc);
     assert_eq!(enc, encrypted_text);
-    let dec = decryption(&key_base64, &enc).await.expect("Error decrypting");
+    let dec = decryption(&key_base64, &enc).expect("Error decrypting");
     println!("Decrypted: value: {}", dec);
     assert_eq!(dec, plaintext);
 }
 
-pub(super) async fn generate_key() -> String {
+pub(super) fn generate_key() -> String {
     let mut rng = rand::rng();
     let mut key = [0u8; 32];
     rng.fill(&mut key);
     let mut iv = [0u8; 16];
     rng.fill(&mut iv);
-    format!("aes256:{}:{}", BASE64_STANDARD.encode(key), BASE64_STANDARD.encode(iv))
+    format!("{}:$:{}", BASE64_STANDARD.encode(key), BASE64_STANDARD.encode(iv))
 }
