@@ -1,21 +1,14 @@
 pub(crate) mod roles;
 pub(crate) mod root;
-use crate::encryption::match_hash;
-use crate::physical::get_user;
-use base64::prelude::BASE64_STANDARD;
-use base64::Engine;
+
+use crate::{
+    encryption::match_hash,
+    error::ServerError::{self, Unauthorized},
+    physical::get_user,
+};
+use base64::{prelude::BASE64_STANDARD, Engine};
 use diesel::SqliteConnection;
-use std::fmt::Display;
 use std::net::SocketAddr;
-
-#[derive(Debug)]
-pub(crate) struct AuthError(String);
-
-impl Display for AuthError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Auth Error: {}", self.0)
-    }
-}
 
 pub(crate) fn is_authorized(
     auth_token: Option<String>,
@@ -23,7 +16,7 @@ pub(crate) fn is_authorized(
     _resource: String,
     _origin: SocketAddr,
     conn: &mut SqliteConnection,
-) -> Result<(bool, String), AuthError> {
+) -> Result<(bool, String), ServerError> {
     if auth_token.is_none() {
         return Ok((false, "Missing token".to_string()));
     }
@@ -32,18 +25,17 @@ pub(crate) fn is_authorized(
 
     let decoded_bytes = BASE64_STANDARD
         .decode(token.clone())
-        .map_err(|_| AuthError("Invalid Base64 token".to_string()))?;
+        .map_err(|_| Unauthorized("Invalid Base64 token".to_string()))?;
     let decoded_str = String::from_utf8(decoded_bytes)
-        .map_err(|_| AuthError("Invalid UTF-8 token".to_string()))?;
+        .map_err(|_| Unauthorized("Invalid UTF-8 token".to_string()))?;
 
     let mut parts = decoded_str.splitn(2, ':');
     let username =
-        parts.next().ok_or_else(|| AuthError("Missing username".to_string()))?.to_string();
+        parts.next().ok_or_else(|| Unauthorized("Missing username".to_string()))?.to_string();
     let password =
-        parts.next().ok_or_else(|| AuthError("Missing password".to_string()))?.to_string();
+        parts.next().ok_or_else(|| Unauthorized("Missing password".to_string()))?.to_string();
 
-    let user_option = get_user(username.as_ref(), conn)
-        .map_err(|ex| AuthError(format!("Error getting root user: {}", ex)))?;
+    let user_option = get_user(username.as_ref(), conn)?;
 
     if user_option.is_none() {
         return Ok((false, "User not found".to_string()));

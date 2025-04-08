@@ -1,5 +1,7 @@
 mod models;
 mod schema;
+use crate::error::ServerError;
+use crate::error::ServerError::{BadRequest, InternalServerError, NotFound};
 use crate::{
     auth::roles::User,
     encryption::{decrypt, encrypt, generate_key, hash, match_hash},
@@ -12,19 +14,9 @@ use diesel::{
     ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection,
     TextExpressionMethods,
 };
-use std::fmt::Display;
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::warn;
-
-#[derive(Debug)]
-pub(crate) struct PhysicalError(String);
-
-impl Display for PhysicalError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Physical Error: {}", self.0)
-    }
-}
 
 pub(crate) static MASTER_ENCRYPTION_KEY: OnceLock<(String, String)> = OnceLock::new(); // key, hash
 
@@ -42,22 +34,20 @@ pub(crate) fn write(
     key: &str,
     value: &str,
     conn: &mut SqliteConnection,
-) -> Result<(), PhysicalError> {
+) -> Result<(), ServerError> {
     validate_keys(key, false)?;
     let (master_enc_key, master_enc_key_hash) =
         if let Some(master_key) = MASTER_ENCRYPTION_KEY.get() {
             (master_key.0.clone(), master_key.1.clone())
         } else {
-            return Err(PhysicalError("Master encryption key not set".to_string()));
+            return Err(InternalServerError("Master encryption key not set".to_string()));
         };
     let next_version = get_next_version(key, conn);
 
     let encryption_key = generate_key();
     let encryption_key_hash = hash(&encryption_key);
-    let encrypted_value = encrypt(&encryption_key, value)
-        .map_err(|ex| PhysicalError(format!("Error encrypting value: {}", ex)))?;
-    let encrypted_encryption_key = encrypt(&master_enc_key, &encryption_key)
-        .map_err(|ex| PhysicalError(format!("Error encrypting encryption key: {}", ex)))?;
+    let encrypted_value = encrypt(&encryption_key, value)?;
+    let encrypted_encryption_key = encrypt(&master_enc_key, &encryption_key)?;
     let new_key_value = NewKeyValueModel {
         id: None,
         key: &key.to_string(),
@@ -66,7 +56,7 @@ pub(crate) fn write(
         version: next_version,
         last_updated_at: SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map_err(|_| PhysicalError("System time before UNIX EPOCH".to_string()))?
+            .map_err(|_| InternalServerError("System time before UNIX EPOCH".to_string()))?
             .as_millis() as i64,
         encryptor_key_hash: &encryption_key_hash.to_string(),
     };
@@ -79,11 +69,11 @@ pub(crate) fn write(
     diesel::insert_into(schema::encryption_keys::table)
         .values(&new_encryption_key)
         .execute(conn)
-        .map_err(|ex| PhysicalError(format!("Error inserting into db: {}", ex)))?;
+        .map_err(|ex| InternalServerError(format!("Error inserting encryption key into db: {}", ex)))?;
     diesel::insert_into(schema::key_value::table)
         .values(&new_key_value)
         .execute(conn)
-        .map_err(|ex| PhysicalError(format!("Error inserting into db: {}", ex)))?;
+        .map_err(|ex| InternalServerError(format!("Error inserting key value into db: {}", ex)))?;
     Ok(())
 }
 
@@ -98,16 +88,13 @@ fn get_latest_version(key: &str, conn: &mut SqliteConnection) -> i32 {
         .unwrap_or(0)
 }
 
-pub(crate) fn read(
-    key: &str,
-    conn: &mut SqliteConnection,
-) -> Result<Option<String>, PhysicalError> {
+pub(crate) fn read(key: &str, conn: &mut SqliteConnection) -> Result<Option<String>, ServerError> {
     validate_keys(key, false)?;
     let (master_enc_key, master_enc_key_hash) =
         if let Some(master_key) = MASTER_ENCRYPTION_KEY.get() {
             (master_key.0.clone(), master_key.1.clone())
         } else {
-            return Err(PhysicalError("Master encryption key not set".to_string()));
+            return Err(InternalServerError("Master encryption key not set".to_string()));
         };
     let latest_version = get_latest_version(key, conn);
     if latest_version == 0 {
@@ -119,7 +106,7 @@ pub(crate) fn read(
         .limit(1)
         .select(KeyValueModel::as_select())
         .load(conn)
-        .map_err(|ex| PhysicalError(format!("Error reading from db: {}", ex)))?;
+        .map_err(|ex| InternalServerError(format!("Error reading key_value from db: {}", ex)))?;
     let key_value = if result.first().is_some() {
         result.first().unwrap()
     } else {
@@ -131,17 +118,19 @@ pub(crate) fn read(
         .filter(schema::encryption_keys::encryption_key_hash.eq(encryption_key_hash))
         .select(EncryptionKeyModel::as_select())
         .load(conn)
-        .map_err(|ex| PhysicalError(format!("Error reading from db: {}", ex)))?;
+        .map_err(|ex| {
+            InternalServerError(format!("Error reading encryption_key from db: {}", ex))
+        })?;
 
     if encryption_key_encrypted.is_empty() {
-        return Err(PhysicalError(format!("Encryption key not found for key: {}", key)));
+        return Err(NotFound(format!("Encryption key not found for key: {}", key)));
     }
 
     if match_hash(
         encryption_key_encrypted.first().unwrap().encryptor_key_hash.as_str(),
         master_enc_key_hash.as_str(),
     ) {
-        return Err(PhysicalError(format!(
+        return Err(BadRequest(format!(
             "Encryption key hash does not match master encryption key hash for key: {}",
             key
         )));
@@ -150,30 +139,28 @@ pub(crate) fn read(
     let encryption_key = decrypt(
         &master_enc_key.clone(),
         &encryption_key_encrypted.first().unwrap().encrypted_encryption_key,
-    )
-    .map_err(|ex| PhysicalError(format!("Error decrypting encryption key: {}", ex)))?;
-    let decrypted_value = decrypt(&encryption_key, &encrypted_value)
-        .map_err(|ex| PhysicalError(format!("Error decrypting value: {}", ex)))?;
+    )?;
+    let decrypted_value = decrypt(&encryption_key, &encrypted_value)?;
     Ok(Some(decrypted_value))
 }
 
 pub(crate) fn mark_all_version_for_delete(
     key: &str,
     conn: &mut SqliteConnection,
-) -> Result<(), PhysicalError> {
+) -> Result<(), ServerError> {
     validate_keys(key, false)?;
     diesel::update(schema::key_value::table)
         .filter(schema::key_value::key.eq(key))
         .set(schema::key_value::deleted.eq(true))
         .execute(conn)
-        .map_err(|ex| PhysicalError(format!("Error deleting from db: {}", ex)))?;
+        .map_err(|ex| InternalServerError(format!("Error deleting key value from db: {}", ex)))?;
     Ok(())
 }
 
 pub(crate) fn list_all_keys(
     key: &str,
     conn: &mut SqliteConnection,
-) -> Result<Vec<String>, PhysicalError> {
+) -> Result<Vec<String>, ServerError> {
     validate_keys(key, true)?;
     let mut find_key = key.to_string();
     if !find_key.is_empty() {
@@ -194,13 +181,13 @@ pub(crate) fn list_all_keys(
 pub(crate) fn get_user(
     username: &str,
     conn: &mut SqliteConnection,
-) -> Result<Option<User>, PhysicalError> {
+) -> Result<Option<User>, ServerError> {
     let result = schema::users::dsl::users
         .filter(schema::users::username.eq(username))
         .limit(1)
         .select(UserModel::as_select())
         .load(conn)
-        .map_err(|ex| PhysicalError(format!("Error reading from db: {}", ex)))?;
+        .map_err(|ex| InternalServerError(format!("Error reading user from db: {}", ex)))?;
     if result.first().is_none() {
         return Ok(None);
     };
@@ -212,7 +199,7 @@ pub(crate) fn get_user(
         password_hash: user_model.password_hash.clone(),
         password_last_changed: user_model.password_last_changed,
         roles: serde_json::from_str(user_model.roles.as_str())
-            .map_err(|ex| PhysicalError(format!("Error parsing roles: {}", ex)))?,
+            .map_err(|ex| InternalServerError(format!("Error parsing roles: {}", ex)))?,
         last_login: user_model.last_login,
         locked: user_model.locked,
         enabled: user_model.enabled,
@@ -220,9 +207,9 @@ pub(crate) fn get_user(
     Ok(Some(user))
 }
 
-pub(crate) fn create_user(user: User, conn: &mut SqliteConnection) -> Result<(), PhysicalError> {
+pub(crate) fn create_user(user: User, conn: &mut SqliteConnection) -> Result<(), ServerError> {
     let roles_str = serde_json::to_string(&user.roles)
-        .map_err(|ex| PhysicalError(format!("Error serializing roles: {}", ex)))?;
+        .map_err(|ex| BadRequest(format!("Error serializing roles: {}", ex)))?;
     let user_model = NewUserModel {
         id: user.id.as_ref(),
         username: &user.username,
@@ -237,13 +224,13 @@ pub(crate) fn create_user(user: User, conn: &mut SqliteConnection) -> Result<(),
     diesel::insert_into(schema::users::table)
         .values(&user_model)
         .execute(conn)
-        .map_err(|ex| PhysicalError(format!("Error inserting into db: {}", ex)))?;
+        .map_err(|ex| InternalServerError(format!("Error inserting user into db: {}", ex)))?;
     Ok(())
 }
 
-pub(crate) fn update_user(user: User, conn: &mut SqliteConnection) -> Result<(), PhysicalError> {
+pub(crate) fn update_user(user: User, conn: &mut SqliteConnection) -> Result<(), ServerError> {
     let roles_str = serde_json::to_string(&user.roles)
-        .map_err(|ex| PhysicalError(format!("Error serializing roles: {}", ex)))?;
+        .map_err(|ex| BadRequest(format!("Error serializing roles: {}", ex)))?;
     diesel::update(schema::users::table)
         .filter(schema::users::username.eq(user.username))
         .set((
@@ -256,34 +243,34 @@ pub(crate) fn update_user(user: User, conn: &mut SqliteConnection) -> Result<(),
             schema::users::enabled.eq(user.enabled),
         ))
         .execute(conn)
-        .map_err(|ex| PhysicalError(format!("Error updating user in db: {}", ex)))?;
+        .map_err(|ex| InternalServerError(format!("Error updating user in db: {}", ex)))?;
     Ok(())
 }
 
-fn validate_keys(key: &str, is_listing: bool) -> Result<(), PhysicalError> {
+fn validate_keys(key: &str, is_listing: bool) -> Result<(), ServerError> {
     if key.is_empty() && !is_listing {
-        return Err(PhysicalError("Key cannot be empty".to_string()));
+        return Err(BadRequest("Key cannot be empty".to_string()));
     }
     if key.len() > 255 {
-        return Err(PhysicalError("Key cannot be longer than 255 characters".to_string()));
+        return Err(BadRequest("Key cannot be longer than 255 characters".to_string()));
     }
     if key.contains(' ') {
-        return Err(PhysicalError("Key cannot contain spaces".to_string()));
+        return Err(BadRequest("Key cannot contain spaces".to_string()));
     }
     if key.contains('\n') {
-        return Err(PhysicalError("Key cannot contain newlines".to_string()));
+        return Err(BadRequest("Key cannot contain newlines".to_string()));
     }
     if key.contains('\r') {
-        return Err(PhysicalError("Key cannot contain carriage returns".to_string()));
+        return Err(BadRequest("Key cannot contain carriage returns".to_string()));
     }
     if key.contains('\t') {
-        return Err(PhysicalError("Key cannot contain tabs".to_string()));
+        return Err(BadRequest("Key cannot contain tabs".to_string()));
     }
     if key.contains('\0') {
-        return Err(PhysicalError("Key cannot contain null characters".to_string()));
+        return Err(BadRequest("Key cannot contain null characters".to_string()));
     }
     if key.starts_with("/") || key.ends_with("/") {
-        return Err(PhysicalError("Key cannot start or end with a slash".to_string()));
+        return Err(BadRequest("Key cannot start or end with a slash".to_string()));
     }
     Ok(())
 }

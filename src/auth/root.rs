@@ -1,9 +1,7 @@
 use crate::{
-    auth::{
-        roles::{Privilege, PrivilegeType, Role, RoleType, User},
-        AuthError,
-    },
+    auth::roles::{Privilege, PrivilegeType, Role, RoleType, User},
     encryption::hash,
+    error::ServerError::{self, InternalServerError},
     physical::{create_user, get_user, update_user},
 };
 use diesel::SqliteConnection;
@@ -11,20 +9,20 @@ use rand::{distr::Alphanumeric, Rng};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::info;
 
-pub(crate) fn create_root_user(conn: &mut SqliteConnection) -> Result<(), AuthError> {
+pub(crate) fn create_root_user(conn: &mut SqliteConnection) -> Result<(), ServerError> {
     let configuration = crate::config::INSTANCE.get().expect("Configuration not initialized.");
     let is_new_root_user;
     let mut roles = Vec::new();
     let current_epoch = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map_err(|_| AuthError("System time before UNIX EPOCH".to_string()))?
+        .map_err(|_| InternalServerError("System time before UNIX EPOCH".to_string()))?
         .as_millis() as i64;
     roles.push(Role {
         name: RoleType::ADMIN,
         privileges: vec![Privilege { name: PrivilegeType::SUDO }],
     });
     let root_user_option = get_user("root", conn)
-        .map_err(|ex| AuthError(format!("Error getting root user: {}", ex)))?;
+        .map_err(|ex| InternalServerError(format!("Error getting root user: {}", ex)))?;
 
     let mut root_user = match root_user_option {
         Some(user) => {
@@ -68,12 +66,10 @@ pub(crate) fn create_root_user(conn: &mut SqliteConnection) -> Result<(), AuthEr
 
     if is_new_root_user {
         info!("Creating new root user: {}", current_epoch);
-        create_user(root_user, conn)
-            .map_err(|ex| AuthError(format!("Error creating root user: {}", ex)))?;
+        create_user(root_user, conn)?;
     } else {
         info!("Updating existing root user: {}", current_epoch);
-        update_user(root_user, conn)
-            .map_err(|ex| AuthError(format!("Error updating root user: {}", ex)))?;
+        update_user(root_user, conn)?;
     }
 
     Ok(())

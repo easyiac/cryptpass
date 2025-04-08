@@ -1,19 +1,13 @@
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rand::Rng;
+use crate::error::ServerError;
+use crate::error::ServerError::BadRequest;
 
-#[derive(Debug)]
-pub(crate) struct Aes256CbcEncError(String);
-
-impl std::fmt::Display for Aes256CbcEncError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Aes256CbcEncError: {}", self.0)
-    }
-}
-fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), Aes256CbcEncError> {
+fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), ServerError> {
     let key_iv_base64_vec = key_iv_base64.split(":$:").collect::<Vec<&str>>();
     if key_iv_base64_vec.len() != 2 {
-        Aes256CbcEncError("Invalid key_iv_base64".to_string());
+        BadRequest("Invalid key_iv_base64".to_string());
     }
 
     let key_base64 = key_iv_base64_vec[0];
@@ -21,16 +15,16 @@ fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), Aes256CbcEncE
 
     let key_decoded: Vec<u8> = BASE64_STANDARD
         .decode(key_base64.as_bytes())
-        .map_err(|ex| Aes256CbcEncError(format!("Error decoding key_base64: {}", ex)))?;
+        .map_err(|ex| BadRequest(format!("Error decoding key_base64: {}", ex)))?;
     let key: [u8; 32] = key_decoded.try_into().map_err(|ex| {
-        Aes256CbcEncError(format!("Error converting key_decoded to [u8; 32]: {:?}", ex))
+        BadRequest(format!("Error converting key_decoded to [u8; 32]: {:?}", ex))
     })?;
 
     let iv_decoded: Vec<u8> = BASE64_STANDARD
         .decode(iv_base64.as_bytes())
-        .map_err(|ex| Aes256CbcEncError(format!("Error decoding iv_base64: {}", ex)))?;
+        .map_err(|ex| BadRequest(format!("Error decoding iv_base64: {}", ex)))?;
     let iv: [u8; 16] = iv_decoded.try_into().map_err(|ex| {
-        Aes256CbcEncError(format!("Error converting iv_decoded to [u8; 16]: {:?}", ex))
+        BadRequest(format!("Error converting iv_decoded to [u8; 16]: {:?}", ex))
     })?;
     Ok((key, iv))
 }
@@ -38,7 +32,7 @@ fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), Aes256CbcEncE
 pub(super) fn encryption(
     key_iv_base64: &str,
     plaintext: &str,
-) -> Result<String, Aes256CbcEncError> {
+) -> Result<String, ServerError> {
     let (key, iv) = build_keys(key_iv_base64)?;
 
     let plaintext_bin: Vec<u8> = plaintext.as_bytes().to_vec();
@@ -49,7 +43,7 @@ pub(super) fn encryption(
     buf[..pt_len].copy_from_slice(&plaintext_bin);
     let ct = Aes256CbcEnc::new(&key.into(), &iv.into())
         .encrypt_padded_mut::<Pkcs7>(&mut buf, pt_len)
-        .map_err(|ex| Aes256CbcEncError(format!("Error encrypting: {}", ex)))?;
+        .map_err(|ex| BadRequest(format!("Error encrypting: {}", ex)))?;
     let ct_base64 = format!("enc:$:AES256CBC:$:{}", BASE64_STANDARD.encode(&ct));
     Ok(ct_base64)
 }
@@ -57,7 +51,7 @@ pub(super) fn encryption(
 pub(super) fn decryption(
     key_iv_base64: &str,
     prefix_encrypted_text_base64: &str,
-) -> Result<String, Aes256CbcEncError> {
+) -> Result<String, ServerError> {
     let (key, iv) = build_keys(key_iv_base64)?;
 
     let prefix_encrypted_text_base64_split =
@@ -66,7 +60,7 @@ pub(super) fn decryption(
     if prefix_encrypted_text_base64_split.len() != 3
         && prefix_encrypted_text_base64_split[1] != "AES256CBC"
     {
-        return Err(Aes256CbcEncError(
+        return Err(BadRequest(
             "Invalid data, it should start with enc:$:AES256CBC:$:".to_string(),
         ));
     }

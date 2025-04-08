@@ -1,6 +1,7 @@
 use crate::{
     auth::roles::{Privilege, PrivilegeType, Role, RoleType, User},
     encryption::hash,
+    error::ServerError::InternalServerError,
     physical::{self, MASTER_ENCRYPTION_KEY},
     routers::ServerError::{self, BadRequest, NotFound},
     AppState,
@@ -55,16 +56,12 @@ pub(super) async fn get_user(
     let conn = pool
         .get()
         .await
-        .map_err(|e| BadRequest(format!("Error getting connection from pool: {}", e)))?;
+        .map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     let user_err = username.clone();
     let user = conn
-        .interact(move |conn| {
-            physical::get_user(username.as_str(), conn)
-                .map_err(|ex| BadRequest(format!("Error reading from physical: {}", ex)))
-        })
+        .interact(move |conn| physical::get_user(username.as_str(), conn))
         .await
-        .map_err(|e| BadRequest(format!("Error interacting with database: {}", e)))
-        .map_err(|e| BadRequest(format!("Error getting reading user: {}", e)))??
+        .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??
         .ok_or_else(|| NotFound(format!("User with key {} not found", user_err)))?;
     Ok((StatusCode::OK, Json(user)))
 }
@@ -76,23 +73,19 @@ pub(super) async fn create_update_user(
 ) -> Result<(StatusCode, Json<User>), ServerError> {
     let current_epoch = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map_err(|_| BadRequest("System time before UNIX EPOCH".to_string()))?
+        .map_err(|_| InternalServerError("System time before UNIX EPOCH".to_string()))?
         .as_millis() as i64;
     let pool = shared_state.pool;
     let conn = pool
         .get()
         .await
-        .map_err(|e| BadRequest(format!("Error getting connection from pool: {}", e)))?;
+        .map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     let user_err = username.clone();
     let is_new_user;
     let user_option = conn
-        .interact(move |conn| {
-            physical::get_user(username.as_str(), conn)
-                .map_err(|ex| BadRequest(format!("Error reading from physical: {}", ex)))
-        })
+        .interact(move |conn| physical::get_user(username.as_str(), conn))
         .await
-        .map_err(|e| BadRequest(format!("Error interacting with database: {}", e)))
-        .map_err(|e| BadRequest(format!("Error getting reading user: {}", e)))??;
+        .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
     let mut default_roles = Vec::new();
     default_roles.push(Role {
         name: RoleType::USER,
@@ -156,21 +149,13 @@ pub(super) async fn create_update_user(
     };
     let user_res = user.clone();
     if is_new_user {
-        conn.interact(move |conn| {
-            physical::create_user(user.clone(), conn)
-                .map_err(|ex| BadRequest(format!("Error reading from physical: {}", ex)))
-        })
-        .await
-        .map_err(|e| BadRequest(format!("Error interacting with database: {}", e)))
-        .map_err(|e| BadRequest(format!("Error getting reading user: {}", e)))??;
+        conn.interact(move |conn| physical::create_user(user.clone(), conn)).await.map_err(
+            |e| InternalServerError(format!("Error interacting with database: {}", e)),
+        )??;
     } else {
-        conn.interact(move |conn| {
-            physical::update_user(user.clone(), conn)
-                .map_err(|ex| BadRequest(format!("Error reading from physical: {}", ex)))
-        })
-        .await
-        .map_err(|e| BadRequest(format!("Error interacting with database: {}", e)))
-        .map_err(|e| BadRequest(format!("Error getting reading user: {}", e)))??;
+        conn.interact(move |conn| physical::update_user(user.clone(), conn)).await.map_err(
+            |e| InternalServerError(format!("Error interacting with database: {}", e)),
+        )??;
     }
 
     Ok((StatusCode::OK, Json(user_res)))
@@ -197,15 +182,11 @@ pub(super) async fn list_keys(
     let conn = pool
         .get()
         .await
-        .map_err(|e| BadRequest(format!("Error getting connection from pool: {}", e)))?;
+        .map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     info!("Listing keys for {}", key);
     let keys = conn
-        .interact(move |conn| {
-            physical::list_all_keys(key.as_str(), conn)
-                .map_err(|ex| BadRequest(format!("Error reading from physical: {}", ex)))
-        })
+        .interact(move |conn| physical::list_all_keys(key.as_str(), conn))
         .await
-        .map_err(|e| BadRequest(format!("Error interacting with database: {}", e)))
-        .map_err(|e| BadRequest(format!("Error getting reading key: {}", e)))??;
+        .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
     Ok((StatusCode::OK, Json(keys)))
 }

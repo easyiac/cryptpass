@@ -1,16 +1,16 @@
-use crate::encryption::aes256::Aes256CbcEncError;
+use crate::error::ServerError;
 
 pub(crate) mod aes256;
 pub(crate) mod sha256;
 
-pub(crate) fn encrypt(key_iv_base64: &str, plaintext: &str) -> Result<String, Aes256CbcEncError> {
+pub(crate) fn encrypt(key_iv_base64: &str, plaintext: &str) -> Result<String, ServerError> {
     aes256::encryption(key_iv_base64, plaintext)
 }
 
 pub(crate) fn decrypt(
     key_iv_base64: &str,
     encrypted_text_base64: &str,
-) -> Result<String, Aes256CbcEncError> {
+) -> Result<String, ServerError> {
     aes256::decryption(key_iv_base64, encrypted_text_base64)
 }
 

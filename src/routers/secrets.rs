@@ -26,15 +26,10 @@ pub(super) async fn api(
         .map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     match method.as_str() {
         "GET" => {
-            let value = conn
-                .interact(move |conn| {
-                    physical::read(key.as_str(), conn).map_err(|ex| {
-                        InternalServerError(format!("Error reading from physical: {}", ex))
-                    })
-                })
-                .await
-                .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))
-                .map_err(|e| InternalServerError(format!("Error getting reading key: {}", e)))??;
+            let value =
+                conn.interact(move |conn| physical::read(key.as_str(), conn)).await.map_err(
+                    |e| InternalServerError(format!("Error interacting with database: {}", e)),
+                )??;
             debug!("Read value: {:?}", value);
             if let Some(value) = value {
                 debug!("Found value: {}", value);
@@ -54,19 +49,17 @@ pub(super) async fn api(
                 })
             })
             .await
-            .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))
-            .map_err(|e| InternalServerError(format!("Error getting writing key: {}", e)))??;
+            .map_err(|e| {
+                InternalServerError(format!("Error interacting with database: {}", e))
+            })??;
             Ok((StatusCode::CREATED, Json(serde_json::json!({}))))
         }
         "DELETE" => {
-            conn.interact(move |conn| {
-                physical::mark_all_version_for_delete(key.as_str(), conn).map_err(|ex| {
-                    InternalServerError(format!("Error reading from physical: {}", ex))
-                })
-            })
-            .await
-            .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))
-            .map_err(|e| InternalServerError(format!("Error getting writing key: {}", e)))??;
+            conn.interact(move |conn| physical::mark_all_version_for_delete(key.as_str(), conn))
+                .await
+                .map_err(|e| {
+                    InternalServerError(format!("Error interacting with database: {}", e))
+                })??;
             Ok((StatusCode::CREATED, Json(serde_json::json!({}))))
         }
         _ => Err(MethodNotAllowed("Method not allowed".to_string())),
