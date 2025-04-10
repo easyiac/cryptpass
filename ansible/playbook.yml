@@ -8,19 +8,10 @@
       cryptpass_dir: "/app/cryptpass"
       cryptpass_data_dir: "{{ cryptpass_dir }}/data"
       cryptpass_log_dir: "{{ cryptpass_dir }}/logs"
-      cryptpass_version: "{{ lookup('file', (playbook_dir | dirname) + '/CRYPTPASS_VERSION', errors='strict') }}"
       cryptpass_port: "{{ cryptpass_config['server']['port'] | int }}"
   # roles:
   #     - role: geerlingguy.docker  # install the role from tasks after installing python3 and procps
   tasks:
-      - name: Assert that cryptpass_version variable is defined
-        ansible.builtin.assert:
-            that:
-                - cryptpass_version is defined
-                - cryptpass_version is not none
-                - cryptpass_version | length > 0
-            fail_msg: "cryptpass_version is not defined"
-
       - name: Install python3 and procps
         ansible.builtin.raw: DEBIAN_FRONTEND=noninteractive apt-get update
             && DEBIAN_FRONTEND=noninteractive apt-get install -y python3 procps
@@ -37,7 +28,7 @@
         ansible.builtin.import_role:
             name: geerlingguy.docker
 
-      - name: Make build directory
+      - name: Creating directories
         ansible.builtin.file:
             path: "{{ item }}"
             state: directory
@@ -45,13 +36,6 @@
         loop:
             - "{{ cryptpass_data_dir }}"
             - "{{ cryptpass_log_dir }}"
-
-      - name: Copy resources
-        ansible.builtin.copy:
-            src: "{{ playbook_dir | dirname }}/target/{{ ansible_architecture }}-unknown-linux-gnu/release/cryptpass"
-            dest: "{{ cryptpass_dir }}/cryptpass"
-            remote_src: false
-            mode: "0755"
 
       - name: Allow ufw
         community.general.ufw:
@@ -63,7 +47,8 @@
       - name: Run docker
         community.docker.docker_container:
             name: cryptpass
-            image: docker.io/library/debian:bookworm
+            image: docker.io/arpanrecme/cryptpass:latest
+            pull: always
             state: started
             recreate: true
             restart_policy: unless-stopped
@@ -80,4 +65,3 @@
                 - "{{ cryptpass_log_dir }}:{{ cryptpass_log_dir }}"
                 - "{{ cryptpass_dir }}/cryptpass:/cryptpass:ro"
                 - /etc/localtime:/etc/localtime:ro
-            command: /bin/bash -c "/cryptpass"
