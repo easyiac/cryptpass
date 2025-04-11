@@ -2,4 +2,4 @@
     enabled = true
     http = false
     insecure = false
-    ca=["10.8.33.192:8008/ca.pem"]
+    ca=["ca.pem"]
