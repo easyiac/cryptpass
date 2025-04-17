@@ -8,8 +8,8 @@ Setup Cryptpass: \
 }
 
 log_message "Installing required collections and roles"
-uv pip install -e .
-uv run ansible-galaxy collection install community.general
-uv run ansible-galaxy collection install community.docker
-uv run ansible-galaxy role install geerlingguy.docker
-uv run ansible-playbook ansible/playbook.yml
+poetry install
+poetry run ansible-galaxy collection install community.general
+poetry run ansible-galaxy collection install community.docker
+poetry run ansible-galaxy role install geerlingguy.docker
+poetry run ansible-playbook ansible/playbook.yml

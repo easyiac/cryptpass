@@ -1,10 +1,15 @@
 [project]
 name = "cryptpass-rust"
 version = "0.0.0" # Actual version is tracked in Cargo.toml
-description = "Add your description here"
+description = ""
+authors = [{ name = "arpan", email = "arpan.rec@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "ansible>=11.4.0",
-    "ansible-lint>=25.2.1",
-]
+dependencies = ["ansible (>=11.4.0,<12.0.0)", "ansible-lint (>=25.2.1,<26.0.0)"]
+
+[tool.poetry]
+package-mode = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
