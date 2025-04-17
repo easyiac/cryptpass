@@ -2,4 +2,4 @@
     enabled = true
     http = false
     insecure = false
-    ca=["ca.pem"]
+    ca=["root_ca_crt.pem"]
