@@ -12,6 +12,24 @@
   # roles:
   #     - role: geerlingguy.docker  # install the role from tasks after installing python3 and procps
   tasks:
+      - name: Get cargo metadata
+        become: false
+        ansible.builtin.command:
+            argv:
+                - cargo
+                - metadata
+                - --format-version=1
+                - --no-deps
+        register: cargo_metadata
+        changed_when: false
+        delegate_to: localhost
+
+      - name: Set cryptpass version
+        ansible.builtin.set_fact:
+            cryptpass_version: "{{ cargo_metadata_json['packages'][0].version }}"
+        vars:
+            cargo_metadata_json: "{{ cargo_metadata.stdout | from_json }}"
+
       - name: Install python3 and procps
         ansible.builtin.raw: DEBIAN_FRONTEND=noninteractive apt-get update
             && DEBIAN_FRONTEND=noninteractive apt-get install -y python3 procps
@@ -47,7 +65,7 @@
       - name: Run docker
         community.docker.docker_container:
             name: cryptpass
-            image: docker.io/arpanrecme/cryptpass:latest
+            image: docker.io/arpanrecme/cryptpass:{{ cryptpass_version }}
             pull: always
             state: started
             recreate: true
