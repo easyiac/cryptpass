@@ -2,7 +2,4 @@
 useDefault = true
 
 [allowlist]
-paths = [
-  '''vendor/''',
-  '''target/'''
-]
+paths = ['''vendor/''', '''target/''']
