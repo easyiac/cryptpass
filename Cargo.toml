@@ -39,4 +39,4 @@ deadpool-diesel = { version = "0.6.1", features = [
 libsqlite3-sys = { version = "0.32.0", features = [
     "bundled",
     "cc",
-] } # This requires a C compiler
+] } # If this is not present then the system needs to have libsqlite3-dev installed.
