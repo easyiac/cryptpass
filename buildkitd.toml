@@ -1,5 +1,5 @@
 [registry."10.8.33.192:8008"]
-    enabled = true
-    http = false
-    insecure = false
-    ca=["root_ca_crt.pem"]
+enabled = true
+http = false
+insecure = false
+ca = ["root_ca_crt.pem"]
