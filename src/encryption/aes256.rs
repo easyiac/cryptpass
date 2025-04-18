@@ -1,8 +1,8 @@
+use crate::error::ServerError;
+use crate::error::ServerError::BadRequest;
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rand::Rng;
-use crate::error::ServerError;
-use crate::error::ServerError::BadRequest;
 
 fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), ServerError> {
     let key_iv_base64_vec = key_iv_base64.split(":$:").collect::<Vec<&str>>();
@@ -16,23 +16,20 @@ fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), ServerError> 
     let key_decoded: Vec<u8> = BASE64_STANDARD
         .decode(key_base64.as_bytes())
         .map_err(|ex| BadRequest(format!("Error decoding key_base64: {}", ex)))?;
-    let key: [u8; 32] = key_decoded.try_into().map_err(|ex| {
-        BadRequest(format!("Error converting key_decoded to [u8; 32]: {:?}", ex))
-    })?;
+    let key: [u8; 32] = key_decoded
+        .try_into()
+        .map_err(|ex| BadRequest(format!("Error converting key_decoded to [u8; 32]: {:?}", ex)))?;
 
     let iv_decoded: Vec<u8> = BASE64_STANDARD
         .decode(iv_base64.as_bytes())
         .map_err(|ex| BadRequest(format!("Error decoding iv_base64: {}", ex)))?;
-    let iv: [u8; 16] = iv_decoded.try_into().map_err(|ex| {
-        BadRequest(format!("Error converting iv_decoded to [u8; 16]: {:?}", ex))
-    })?;
+    let iv: [u8; 16] = iv_decoded
+        .try_into()
+        .map_err(|ex| BadRequest(format!("Error converting iv_decoded to [u8; 16]: {:?}", ex)))?;
     Ok((key, iv))
 }
 
-pub(super) fn encryption(
-    key_iv_base64: &str,
-    plaintext: &str,
-) -> Result<String, ServerError> {
+pub(super) fn encryption(key_iv_base64: &str, plaintext: &str) -> Result<String, ServerError> {
     let (key, iv) = build_keys(key_iv_base64)?;
 
     let plaintext_bin: Vec<u8> = plaintext.as_bytes().to_vec();

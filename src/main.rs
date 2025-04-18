@@ -1,9 +1,9 @@
 mod auth;
 mod config;
 mod encryption;
+mod error;
 mod physical;
 mod routers;
-mod error;
 
 use crate::{auth::root::create_root_user, routers::axum_server};
 use deadpool_diesel::{sqlite::Pool, Manager, Runtime};
