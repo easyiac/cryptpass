@@ -65,7 +65,7 @@
       - name: Run docker
         community.docker.docker_container:
             name: cryptpass
-            image: docker.io/arpanrecme/cryptpass:{{ cryptpass_version }}
+            image: docker.io/arpanrecme/cryptpass:rust-{{ cryptpass_version }}
             pull: always
             state: started
             recreate: true
