@@ -79,7 +79,7 @@ route: /admin
     ```
 
 - list keys -> GET /list/keys/{key} -> returns 200 status code with a list of keys.
-  - In case of /list/keys or /list/keys/ it will return all the keys.
+- In case of /list/keys or /list/keys/ it will return all the keys.
 
 ### API: V1: secrets
 
@@ -112,8 +112,8 @@ In `ansible/inventory.yml`, the following variables are required.
 ```yaml
 ---
 all:
-  vars:
-    cryptpass_config: "Cryptpass configuration in yaml/json format"
+    vars:
+        cryptpass_config: "Cryptpass configuration in yaml/json format"
 ```
 
 Start the deployment with the following command.
