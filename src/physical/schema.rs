@@ -49,11 +49,11 @@ diesel::table! {
         #[sql_name = "password_hash_c"]
         password_hash -> Nullable<Text>,
         #[sql_name = "password_last_changed_c"]
-        password_last_changed -> Nullable<BigInt>,
+        password_last_changed -> BigInt,
         #[sql_name = "roles_c"]
         roles -> Text,
         #[sql_name = "last_login_c"]
-        last_login -> Nullable<BigInt>,
+        last_login -> BigInt,
         #[sql_name = "locked_c"]
         locked -> Bool,
         #[sql_name = "enabled_c"]

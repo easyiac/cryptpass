@@ -28,9 +28,9 @@ pub(crate) struct User {
     pub(crate) username: String,
     pub(crate) email: Option<String>,
     pub(crate) password_hash: Option<String>,
-    pub(crate) password_last_changed: Option<i64>,
+    pub(crate) password_last_changed: i64,
     pub(crate) roles: Vec<Role>,
-    pub(crate) last_login: Option<i64>,
+    pub(crate) last_login: i64,
     pub(crate) locked: bool,
     pub(crate) enabled: bool,
 }

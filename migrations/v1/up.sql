@@ -28,9 +28,9 @@ CREATE TABLE IF NOT EXISTS users_t
     username_c              TEXT                              NOT NULL,
     email_c                 TEXT,
     password_hash_c         TEXT,
-    password_last_changed_c INTEGER,
+    password_last_changed_c INTEGER                           NOT NULL,
     roles_c                 TEXT                              NOT NULL,
-    last_login_c            INTEGER,
+    last_login_c            INTEGER                           NOT NULL,
     locked_c                BOOLEAN DEFAULT TRUE              NOT NULL,
     enabled_c               BOOLEAN DEFAULT FALSE             NOT NULL,
     UNIQUE (username_c)

@@ -36,33 +36,32 @@ pub(crate) fn create_root_user(conn: &mut SqliteConnection) -> Result<(), Server
                 username: "root".to_string(),
                 email: None,
                 password_hash: None,
-                password_last_changed: None,
+                password_last_changed: 0i64,
                 roles: roles.clone(),
-                last_login: None,
+                last_login: 0i64,
                 locked: false,
                 enabled: true,
             }
         }
     };
 
+    if let Some(password) = &configuration.server.root_password {
+        info!("Adding/Updating root user with password hash from config");
+        root_user.password_hash = Some(hash(password));
+        root_user.password_last_changed = current_epoch;
+    }
+
     if root_user.password_hash.is_none() && configuration.server.root_password.is_none() {
         let s: String = rand::rng().sample_iter(&Alphanumeric).take(10).map(char::from).collect();
         info!("Creating root user with password hash: {}", s);
-        let password_hash = hash(&s);
-        root_user.password_hash = Some(password_hash);
-        root_user.password_last_changed = Some(current_epoch);
+        root_user.password_hash = Some(hash(&s));
+        root_user.password_last_changed = current_epoch;
     };
-
-    if let Some(password) = &configuration.server.root_password {
-        info!("Adding/Updating root user with password hash from config");
-        let password_hash = hash(&password);
-        root_user.password_hash = Some(password_hash);
-        root_user.password_last_changed = Some(current_epoch);
-    }
 
     root_user.locked = false;
     root_user.enabled = true;
     root_user.roles = roles;
+    root_user.last_login = 0i64;
 
     if is_new_root_user {
         info!("Creating new root user: {}", current_epoch);

@@ -53,9 +53,9 @@ pub(crate) struct UserModel {
     pub(crate) username: String,
     pub(crate) email: Option<String>,
     pub(crate) password_hash: Option<String>,
-    pub(crate) password_last_changed: Option<i64>,
+    pub(crate) password_last_changed: i64,
     pub(crate) roles: String,
-    pub(crate) last_login: Option<i64>,
+    pub(crate) last_login: i64,
     pub(crate) locked: bool,
     pub(crate) enabled: bool,
 }
@@ -68,9 +68,9 @@ pub(crate) struct NewUserModel<'a> {
     pub(crate) username: &'a String,
     pub(crate) email: Option<&'a String>,
     pub(crate) password_hash: Option<&'a String>,
-    pub(crate) password_last_changed: Option<&'a i64>,
+    pub(crate) password_last_changed: &'a i64,
     pub(crate) roles: &'a String,
-    pub(crate) last_login: Option<&'a i64>,
+    pub(crate) last_login: &'a i64,
     pub(crate) locked: &'a bool,
     pub(crate) enabled: &'a bool,
 }

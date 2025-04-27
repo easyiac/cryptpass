@@ -103,9 +103,9 @@ pub(super) async fn create_update_user(
                 username: user_err,
                 email: None,
                 password_hash: None,
-                password_last_changed: None,
+                password_last_changed: 0i64,
                 roles: default_roles.clone(),
-                last_login: None,
+                last_login: 0i64,
                 locked: false,
                 enabled: true,
             }
@@ -118,7 +118,7 @@ pub(super) async fn create_update_user(
             .ok_or_else(|| BadRequest("'password' must be a string".to_string()))?
             .to_string();
         user.password_hash = Some(hash(password_str.as_str()));
-        user.password_last_changed = Some(current_epoch);
+        user.password_last_changed = current_epoch;
     };
 
     if let Some(email) = body.get("email") {
