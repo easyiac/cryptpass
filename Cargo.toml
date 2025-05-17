@@ -1,14 +1,14 @@
 [package]
 name = "cryptpass"
-version = "1.0.9"
+version = "1.0.10"
 edition = "2021"
 rust-version = "1.86.0"
 description = "Manage seed data for my home lab."
 license-file = "LICENSE"
 
 [dependencies]
-tokio = { version = "1.44.1", features = ["full"] }
-axum = { version = "0.8.3", features = ["macros"] }
+tokio = { version = "1.45.0", features = ["full"] }
+axum = { version = "0.8.4", features = ["macros"] }
 aes = "0.8.4"
 cbc = "0.1.2"
 base64 = "0.22.1"
@@ -22,10 +22,10 @@ axum-server = { version = "0.7.2", features = [
 ] }
 http-body-util = "0.1.3"
 uuid = { version = "1.16.0", features = ["v4"] }
-rand = "0.9.0"
-sha2 = { version = "0.10.8", features = ["asm"] }
+rand = "0.9.1"
+sha2 = { version = "0.10.9", features = ["asm"] }
 hex = "0.4.3"
-diesel = { version = "2.2.9", features = [
+diesel = { version = "2.2.10", features = [
     "sqlite",
     "returning_clauses_for_sqlite_3_35",
 ] }
@@ -36,7 +36,7 @@ deadpool-diesel = { version = "0.6.1", features = [
     "serde",
     "rt_tokio_1",
 ] }
-libsqlite3-sys = { version = "0.32.0", features = [
+libsqlite3-sys = { version = "0.33.0", features = [
     "bundled",
     "cc",
-] } # If this is not present then the system needs to have libsqlite3-dev installed.
+] } # If this is not present, then the system needs to have libsqlite3-dev installed.

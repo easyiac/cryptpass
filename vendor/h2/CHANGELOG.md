@@ -1,3 +1,11 @@
+# 0.4.10 (May 5, 2025)
+
+* Fix `is_end_stream()` to return true only when ended cleanly, not when errored.
+
+# 0.4.9 (April 14, 2025)
+
+* Add `sever::Connection::has_streams()` method to check for active streams.
+
 # 0.4.8 (February 18, 2025)
 
 * Fix handling implicit stream resets at the more correct time.

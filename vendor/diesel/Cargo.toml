@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.78.0"
 name = "diesel"
-version = "2.2.9"
+version = "2.2.10"
 build = false
 include = [
     "src/**/*.rs",
@@ -197,7 +197,7 @@ version = "0.2.0"
 optional = true
 
 [dependencies.libsqlite3-sys]
-version = ">=0.17.2, <0.33.0"
+version = ">=0.17.2, <0.34.0"
 features = ["bundled_bindings"]
 optional = true
 
