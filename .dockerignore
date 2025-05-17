@@ -4,3 +4,4 @@
 !vendor/
 !.cargo/
 !migrations/
+build.rs
