@@ -5,3 +5,4 @@
 !.cargo/
 !migrations/
 build.rs
+root_ca_crt.pem
