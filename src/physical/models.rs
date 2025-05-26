@@ -1,4 +1,5 @@
 use diesel::{Identifiable, Insertable, Queryable, Selectable};
+use serde::Serialize;
 
 #[derive(Queryable, Selectable, Debug, Identifiable)]
 #[diesel(primary_key(encryption_key_hash))]
@@ -20,7 +21,7 @@ pub(crate) struct NewEncryptionKeyModel<'a> {
     pub(crate) encryptor_key_hash: &'a String,
 }
 
-#[derive(Queryable, Selectable, Debug, Identifiable)]
+#[derive(Queryable, Selectable, Debug, Identifiable, Clone, Serialize)]
 #[diesel(table_name = crate::physical::schema::key_value)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[diesel(primary_key(key, version))]
@@ -29,6 +30,9 @@ pub(crate) struct KeyValueModel {
     pub(crate) encrypted_value: String,
     pub(crate) version: i32,
     pub(crate) encryptor_key_hash: String,
+    pub(crate) deleted: bool,
+    pub(crate) last_updated_at: i64,
+    pub(crate) id: Option<i64>,
 }
 
 #[derive(Insertable)]

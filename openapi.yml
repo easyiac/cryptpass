@@ -1,0 +1,443 @@
+---
+openapi: 3.1.1
+info:
+    title: CryptPass API
+    description: API for CryptPass, a secure key-value storage service with encryption capabilities.
+    version: 1.0.0
+servers:
+    - url: http://127.0.0.1:8088
+      description: local
+security:
+    - ApiKeyAuth: []
+paths:
+    "/health":
+        get:
+            tags:
+                - health
+            summary: Health check
+            description: Check if the service is running
+            security: []
+            responses:
+                "200":
+                    description: Service is healthy
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Health"
+    "/api/v1/admin/user/{username}":
+        parameters:
+            - name: username
+              in: path
+              required: true
+              schema:
+                  type: string
+              description: Username
+        get:
+            tags:
+                - admin
+            summary: Get user
+            description: Get user details
+            responses:
+                "200":
+                    description: User details
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/User"
+                "401":
+                    description: Unauthorized
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+                "404":
+                    description: User not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+        put:
+            tags:
+                - admin
+            summary: Create or update user
+            description: Create a new user or update an existing user
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                password:
+                                    type: [string, "null"]
+                                    required: false
+                                    description: User password
+                                email:
+                                    type: [string, "null"]
+                                    required: false
+                                    description: User email
+                                locked:
+                                    type: [boolean, "null"]
+                                    required: false
+                                    description: Whether the user is locked
+                                enabled:
+                                    type: [boolean, "null"]
+                                    required: false
+                                    description: Whether the user is enabled
+                                roles:
+                                    type: array
+                                    required: false
+                                    items:
+                                        $ref: "#/components/schemas/Role"
+                                    description: User roles
+            responses:
+                "200":
+                    description: User created or updated
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/User"
+                "400":
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+                "401":
+                    description: Unauthorized
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+    "/api/v1/admin/unlock":
+        put:
+            tags:
+                - admin
+            summary: Unlock system
+            description: Set the master encryption key to unlock the system
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UnlockRequest"
+            responses:
+                "200":
+                    description: System unlocked
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UnlockResponse"
+                "400":
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+                "401":
+                    description: Unauthorized
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+    "/api/v1/keyvalue/data/{key}":
+        parameters:
+            - name: key
+              in: path
+              required: true
+              schema:
+                  type: string
+              description: Key path (can include slashes)
+            - name: version
+              in: query
+              required: false
+              schema:
+                  type: [integer, "null"]
+                  minimum: 1
+              description: Specific version of the key to retrieve or update
+        get:
+            tags:
+                - keyvalue
+            summary: Get value
+            description: Get the value for a key. The key is specified in the URI path.
+            responses:
+                "200":
+                    description: Value for the key
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/KeyValueData"
+                "401":
+                    description: Unauthorized
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+                "404":
+                    description: Key not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+        put:
+            tags:
+                - keyvalue
+            summary: Set value
+            description: Set the value for a key. The key is specified in the URI path and
+                the value is provided in the request body.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/KeyValueData"
+            responses:
+                "201":
+                    description: Value set
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    version:
+                                        type:
+                                            - integer
+
+                "401":
+                    description: Unauthorized
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+        delete:
+            tags:
+                - keyvalue
+            summary: Delete key
+            description: Delete a key and its value. The key is specified in the URI path.
+            responses:
+                "200":
+                    description: Key deleted
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                "401":
+                    description: Unauthorized
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+    "/api/v1/keyvalue/details/{key}":
+        parameters:
+            - name: key
+              in: path
+              required: true
+              schema:
+                  type: string
+              description: Key path (can include slashes)
+            - name: version
+              in: query
+              required: false
+              schema:
+                  type: [integer, "null"]
+                  minimum: 1
+              description: Specific version of the key to retrieve metadata for
+        get:
+            tags:
+                - keyvalue
+            summary: Get key details
+            description: Get metadata for a key. The key is specified in the URI path.
+            responses:
+                "200":
+                    description: Key metadata
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/KeyValueDetails"
+                "401":
+                    description: Unauthorized
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+                "404":
+                    description: Key not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+    "/api/v1/keyvalue/list":
+        get:
+            tags:
+                - keyvalue
+            summary: List all keys
+            description: List all keys in the store
+            responses:
+                "200":
+                    description: List of keys
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/KeyList"
+                "401":
+                    description: Unauthorized
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+    "/api/v1/keyvalue/list/{key}":
+        parameters:
+            - name: key
+              in: path
+              required: true
+              schema:
+                  type: string
+              description: Key prefix (can include slashes)
+        get:
+            tags:
+                - keyvalue
+            summary: List keys with prefix
+            description: List all keys with a specific prefix. The key prefix is specified
+                in the URI path.
+            responses:
+                "200":
+                    description: List of keys
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/KeyList"
+                "401":
+                    description: Unauthorized
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Error"
+components:
+    securitySchemes:
+        ApiKeyAuth:
+            type: apiKey
+            in: header
+            name: X-CRYPTPASS-KEY
+    schemas:
+        Error:
+            type: object
+            properties:
+                error:
+                    type: string
+                    description: Error message
+            required: [error]
+        User:
+            type: object
+            properties:
+                id:
+                    type: [integer, "null"]
+                    format: int64
+                    description: User ID
+                username:
+                    type: string
+                    description: Username
+                email:
+                    type: [string, "null"]
+                    description: User email
+                password_hash:
+                    type: [string, "null"]
+                    description: Hashed password (only used in requests)
+                password_last_changed:
+                    type: integer
+                    format: int64
+                    description: Timestamp when password was last changed
+                roles:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/Role"
+                    description: User roles
+                last_login:
+                    type: integer
+                    format: int64
+                    description: Timestamp of last login
+                locked:
+                    type: boolean
+                    description: Whether the user is locked
+                enabled:
+                    type: boolean
+                    description: Whether the user is enabled
+            required: [username, roles, locked, enabled]
+        Role:
+            type: object
+            properties:
+                name:
+                    type: string
+                    description: Role name
+                privileges:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/Privilege"
+                    description: Role privileges
+            required: [name, privileges]
+        Privilege:
+            type: object
+            properties:
+                name:
+                    type: string
+                    description: Privilege name
+            required: [name]
+        KeyValueData:
+            type: object
+            description: The JSON value to be stored. The key is specified in the URI path.
+            additionalProperties: true
+        KeyValueDetails:
+            type: object
+            description: Metadata for a key-value pair
+            properties:
+                key:
+                    type: string
+                    description: Key identifier
+                encrypted_value:
+                    type: string
+                    description: Encrypted value
+                version:
+                    type: integer
+                    minimum: 1
+                    format: int32
+                    description: Version number of the key-value pair
+                encryptor_key_hash:
+                    type: string
+                    description: Hash of the encryptor key used
+                deleted:
+                    type: boolean
+                    description: Whether the key has been deleted
+                last_updated_at:
+                    type: integer
+                    format: int64
+                    description: Timestamp of last update
+                id:
+                    type: integer
+                    format: int64
+                    description: Unique identifier
+            required: [key, encrypted_value, version, encryptor_key_hash, deleted, last_updated_at]
+        KeyList:
+            type: array
+            items:
+                type: string
+            description: List of keys
+        UnlockRequest:
+            type: object
+            properties:
+                key:
+                    type: string
+                    description: Master encryption key
+            required: [key]
+        UnlockResponse:
+            type: object
+            properties:
+                message:
+                    type: string
+                    description: Success message with key hash
+            required: [message]
+        Health:
+            type: object
+            properties:
+                status:
+                    type: string
+                    example: OK
+            required: [status]

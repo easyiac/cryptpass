@@ -1,10 +1,9 @@
-use crate::error::ServerError;
-use crate::error::ServerError::BadRequest;
+use crate::error::CryptPassError::{self, BadRequest};
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rand::Rng;
 
-fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), ServerError> {
+fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), CryptPassError> {
     let key_iv_base64_vec = key_iv_base64.split(":$:").collect::<Vec<&str>>();
     if key_iv_base64_vec.len() != 2 {
         BadRequest("Invalid key_iv_base64".to_string());
@@ -29,7 +28,7 @@ fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), ServerError> 
     Ok((key, iv))
 }
 
-pub(super) fn encryption(key_iv_base64: &str, plaintext: &str) -> Result<String, ServerError> {
+pub(super) fn encryption(key_iv_base64: &str, plaintext: &str) -> Result<String, CryptPassError> {
     let (key, iv) = build_keys(key_iv_base64)?;
 
     let plaintext_bin: Vec<u8> = plaintext.as_bytes().to_vec();
@@ -48,7 +47,7 @@ pub(super) fn encryption(key_iv_base64: &str, plaintext: &str) -> Result<String,
 pub(super) fn decryption(
     key_iv_base64: &str,
     prefix_encrypted_text_base64: &str,
-) -> Result<String, ServerError> {
+) -> Result<String, CryptPassError> {
     let (key, iv) = build_keys(key_iv_base64)?;
 
     let prefix_encrypted_text_base64_split =

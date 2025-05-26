@@ -24,3 +24,7 @@ foo*
 *.egg
 *.egg-info/
 gitleaks-secrets.json
+gen/*
+data/*
+cryptpass.json
+cryptpass*.json

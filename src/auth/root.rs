@@ -1,16 +1,16 @@
 use crate::{
     auth::roles::{Privilege, PrivilegeType, Role, RoleType, User},
     encryption::hash,
-    error::ServerError::{self, InternalServerError},
-    physical::{create_user, get_user, update_user},
+    error::CryptPassError::{self, InternalServerError},
+    services, CRYPTPASS_CONFIG_INSTANCE,
 };
 use diesel::SqliteConnection;
 use rand::{distr::Alphanumeric, Rng};
 use std::time::{SystemTime, UNIX_EPOCH};
-use tracing::info;
+use tracing::{info, warn};
 
-pub(crate) fn create_root_user(conn: &mut SqliteConnection) -> Result<(), ServerError> {
-    let configuration = crate::config::INSTANCE.get().expect("Configuration not initialized.");
+pub(crate) fn create_root_user(conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
+    let configuration = CRYPTPASS_CONFIG_INSTANCE.get().expect("Configuration not initialized.");
     let is_new_root_user;
     let mut roles = Vec::new();
     let current_epoch = SystemTime::now()
@@ -21,7 +21,7 @@ pub(crate) fn create_root_user(conn: &mut SqliteConnection) -> Result<(), Server
         name: RoleType::ADMIN,
         privileges: vec![Privilege { name: PrivilegeType::SUDO }],
     });
-    let root_user_option = get_user("root", conn)
+    let root_user_option = services::users::get_user("root", conn)
         .map_err(|ex| InternalServerError(format!("Error getting root user: {}", ex)))?;
 
     let mut root_user = match root_user_option {
@@ -53,7 +53,8 @@ pub(crate) fn create_root_user(conn: &mut SqliteConnection) -> Result<(), Server
 
     if root_user.password_hash.is_none() && configuration.server.root_password.is_none() {
         let s: String = rand::rng().sample_iter(&Alphanumeric).take(10).map(char::from).collect();
-        info!("Creating root user with password hash: {}", s);
+        info!("Creating root user with password: {}", s);
+        warn!("Make sure to change the password after first login!");
         root_user.password_hash = Some(hash(&s));
         root_user.password_last_changed = current_epoch;
     };
@@ -64,11 +65,13 @@ pub(crate) fn create_root_user(conn: &mut SqliteConnection) -> Result<(), Server
     root_user.last_login = 0i64;
 
     if is_new_root_user {
-        info!("Creating new root user: {}", current_epoch);
-        create_user(root_user, conn)?;
+        info!("Creating new root user");
+        services::users::create_user(root_user, conn)?;
+        info!("Root user created");
     } else {
-        info!("Updating existing root user: {}", current_epoch);
-        update_user(root_user, conn)?;
+        info!("Updating existing root user");
+        services::users::update_user(root_user, conn)?;
+        info!("Existing root user updated");
     }
 
     Ok(())

@@ -5,8 +5,9 @@ use axum::{
 use std::fmt::Display;
 use tracing::warn;
 use uuid::Uuid;
+
 #[derive(Debug)]
-pub(crate) enum ServerError {
+pub(crate) enum CryptPassError {
     RouterError(String),
     NotFound(String),
     InternalServerError(String),
@@ -15,44 +16,44 @@ pub(crate) enum ServerError {
     BadRequest(String),
 }
 
-impl Display for ServerError {
+impl Display for CryptPassError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ServerError::NotFound(e) => write!(f, "Not Found: {}", e),
-            ServerError::InternalServerError(e) => write!(f, "Internal Server Error: {}", e),
-            ServerError::Unauthorized(e) => write!(f, "Unauthorized: {}", e),
-            ServerError::MethodNotAllowed(e) => write!(f, "Method Not Allowed: {}", e),
-            ServerError::RouterError(e) => write!(f, "Router Error: {}", e),
-            ServerError::BadRequest(e) => write!(f, "Bad Request: {}", e),
+            CryptPassError::NotFound(e) => write!(f, "Not Found: {}", e),
+            CryptPassError::InternalServerError(e) => write!(f, "Internal Server Error: {}", e),
+            CryptPassError::Unauthorized(e) => write!(f, "Unauthorized: {}", e),
+            CryptPassError::MethodNotAllowed(e) => write!(f, "Method Not Allowed: {}", e),
+            CryptPassError::RouterError(e) => write!(f, "Router Error: {}", e),
+            CryptPassError::BadRequest(e) => write!(f, "Bad Request: {}", e),
         }
     }
 }
-impl IntoResponse for ServerError {
+impl IntoResponse for CryptPassError {
     fn into_response(self) -> Response {
         match self {
-            ServerError::NotFound(e) => {
+            CryptPassError::NotFound(e) => {
                 let error_body = serde_json::json!({ "error": e });
                 (StatusCode::NOT_FOUND, axum::Json(error_body)).into_response()
             }
-            ServerError::InternalServerError(e) => {
+            CryptPassError::InternalServerError(e) => {
                 let random_uuid = Uuid::new_v4().to_string();
                 warn!("Internal Server Error: {} - {}", random_uuid, e);
                 let error_body =
                     serde_json::json!({ "error": "Internal Server Error", "uuid": random_uuid });
                 (StatusCode::INTERNAL_SERVER_ERROR, axum::Json(error_body)).into_response()
             }
-            ServerError::Unauthorized(e) => {
+            CryptPassError::Unauthorized(e) => {
                 let error_body = serde_json::json!({ "error": e });
                 (StatusCode::UNAUTHORIZED, axum::Json(error_body)).into_response()
             }
-            ServerError::MethodNotAllowed(e) => {
+            CryptPassError::MethodNotAllowed(e) => {
                 let error_body = serde_json::json!({ "error": e });
                 (StatusCode::METHOD_NOT_ALLOWED, axum::Json(error_body)).into_response()
             }
-            ServerError::RouterError(e) => {
+            CryptPassError::RouterError(e) => {
                 panic!("Router Error, RouterErrors are not meant to be returned: {}", e)
             }
-            ServerError::BadRequest(e) => {
+            CryptPassError::BadRequest(e) => {
                 let error_body = serde_json::json!({ "error": e });
                 (StatusCode::BAD_REQUEST, axum::Json(error_body)).into_response()
             }

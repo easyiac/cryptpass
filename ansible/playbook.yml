@@ -10,7 +10,7 @@
       cryptpass_log_dir: "{{ cryptpass_dir }}/logs"
       cryptpass_port: "{{ cryptpass_config['server']['port'] | int }}"
   # roles:
-  #     - role: geerlingguy.docker  # install the role from tasks after installing python3 and procps
+  #     - role: geerlingguy.docker # install the role from tasks after installing python3 and procps
   tasks:
       - name: Get cargo metadata
         become: false

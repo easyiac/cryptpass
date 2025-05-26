@@ -1,19 +1,34 @@
 # Cryptpass
 
-A basic CRUD rest api wrapper for managing configuration and secrets.
+Cryptpass is a basic REST API service for securely managing configuration and secrets. It provides a simple CRUD
+interface and is designed to be robust for both small-scale personal deployments and more controlled lab environments.
 
-## Configuration
+## Features
 
-env vars:
+- **Secrets Management:** Store, retrieve, update, and delete sensitive configuration and secret data via a secure API.
+- **Strong Authentication:** Configurable root password and API key header, with optional TLS support.
+- **Encrypted Storage:** Uses `master-key` encryption for secrets at rest.
+- **Health Checks:** Simple health endpoint for monitoring.
+- **Easy Configuration:** Supports JSON-based and file-based configuration schemes.
+- **Extensible Deployment:** Ansible-based deployment scripts for effortless setup on target hosts.
+- **Logging:** Customizable log levels and output directories.
 
-- CRYPTPASS_CONFIG: Configuration in json format or Path to the configuration file, default is `/etc/cryptpass/config.json`.
+## Getting Started
+
+### Configuration
+
+The service reads configuration from the environment or a JSON file (default path: `/etc/cryptpass/config.json`). You
+can provide the entire config as a JSON string or reference a config file path using the `CRYPTPASS_CONFIG` environment
+variable.
+
+#### Example Config (`/etc/cryptpass/config.json`)
 
 ```json
 {
     "server": {
         "port": "Port, type: int, default: `8088`",
         "root-password": "Root password, If not present in first run, it will be generated, and printed in the log on INFO level",
-        "auth-header-key": "Auth header key, default is `Authorization`",
+        "auth-header-key": "Auth header key, default is `X-CRYPTPASS-KEY`",
         "tls": {
             "key-pem": "PEM key, if missing then server will run in http",
             "cert-pem": "PEM cert, if missing then server will run in http"
@@ -28,119 +43,86 @@ env vars:
 }
 ```
 
-- CRYPTPASS_LOG_LEVEL: Log level, default is INFO. [Reference](https://logging.apache.org/log4j/2.x/manual/customloglevels.html)
-- CRYPTPASS_LOG_DIR: Log directory, default is /var/log/cryptpass.
+#### Environment Variables
 
-## CRUD API: V1
+- `CRYPTPASS_CONFIG`: Path to a configuration file or raw JSON. **Default:** `/etc/cryptpass/config.json`
+- `CRYPTPASS_LOG_LEVEL`: Log level (`INFO`, `DEBUG`, etc.). **Default:** `INFO`. [Reference](https://logging.apache.org/log4j/2.x/manual/customloglevels.html)
+- `CRYPTPASS_LOG_DIR`: Log directory. **Default:** `/var/log/cryptpass`
 
-route: /api/v1
+For first-time setups:
 
-### API: V1: admin
+- If the root password is unset, one will be generated on startup and printed to logs at INFO level.
+- If TLS fields are omitted, the service will run **HTTP** (not recommended for production).
 
-All the data is stored with zero knowledge encryption.
-You can provide/change the encryption key with the unlock endpoint.
+## API Endpoints
 
-route: /admin
+- `POST /api/v1/admin/...` — Admin operations (authentication, unlocking, etc.).
+- `POST /api/v1/keyvalue/...` — CRUD for secret key-value pairs.
+- `GET /health` — Health check endpoint, returns `OK` if running.
 
-- unlock -> PUT /unlock -> returns 201 status code
-
-  body:
-
-    ```json
-    {
-        "key": "key"
-    }
-    ```
-
-- read user -> GET /user/{username} -> returns 200 status code
-
-- write user -> PUT /user/{username} -> returns 201 status code
-
-  body:
-
-    ```json
-    {
-        "email": null,
-        "password": "test123",
-        "roles": [
-            {
-                "name": "ADMIN",
-                "privileges": [
-                    {
-                        "name": "SUDO"
-                    }
-                ]
-            }
-        ],
-        "lastLogin": 0,
-        "locked": false,
-        "enabled": true
-    }
-    ```
-
-- list keys -> GET /list/keys/{key} -> returns 200 status code with a list of keys.
-- In case of /list/keys or /list/keys/ it will return all the keys.
-
-### API: V1: secrets
-
-route: /secrets
-
-It performs only 3 operations: `read`, `write`, and `delete`.
-
-- read -> GET /{key} -> returns the secret value with 200 status code
-
-- write -> POST /{key} -> returns 201 status code
-
-  body:
-
-    ```json
-    {
-        "secret1": "value1"
-    }
-    ```
-
-- delete -> DELETE /{key} -> returns 204 status code
+*See OpenAPI/Swagger documentation for full REST interface details and payload formats.*
 
 ## Deployment
 
-Add all the variables in `ansible/inventory.yml` and run the following command.
+Deployment is automated using **Ansible**.
 
-Ansible vault password is in bitwarden `ansible/vault_pass.sh`.
+### Steps
 
-In `ansible/inventory.yml`, the following variables are required.
+1. Edit `ansible/inventory.yml` to set required variables (see template below):
 
-```yaml
----
-all:
-    vars:
-        cryptpass_config: "Cryptpass configuration in yaml/json format"
-```
+    ```yaml
+    all:
+        vars:
+            cryptpass_config: "<Cryptpass configuration in yaml/json format>"
+    ```
 
-Start the deployment with the following command.
+2. The Ansible Vault password for secure var files can be retrieved from your organization's Bitwarden or with
+   `ansible/vault_pass.sh`.
 
-```sh
+3. Deploy with:
+
+```textmate
 ./ansible/deploy.sh
 ```
 
-## Development
+---
 
-### Setup
+## Development Setup
 
-For ansible vault diff.
+1. Clone the repository and install Rust (if not installed):
 
-Add the following line in `~/.gitattributes`.
+    ```textmate
+    rustup install stable
+    ```
 
-```gitignore
-ansible/inventory.yml diff=ansible-vault merge=binary
-```
+2. [Optional] For Ansible vault diff support, add to `~/.gitattributes`:
 
-And then run the following command.
+    ```.gitignore (gitignore)
+    ansible/inventory.yml diff=ansible-vault merge=binary
+    ```
 
-```sh
-git config diff.ansible-vault.textconv "ansible-vault view"
-```
+   Then, configure git diff:
 
-## Backup
+    ```textmate
+    git config diff.ansible-vault.textconv "ansible-vault view"
+    ```
 
-In the roadmap, after I set up a factory for milk bottle, seat belt and helmet, I will implement a backup mechanism for
-the secrets.
+3. Run the project locally (with a dev configuration):
+
+    ```textmate
+    cargo run
+    ```
+
+## Roadmap
+
+- **Backup:** Automated secret backups (planned after base feature stabilization).
+- **Additional Integrations:** Extending the API for broader use-cases.
+- **Factory & Safety Improvements:** Ensure robust data durability and safety protocols.
+
+## License
+
+See the [LICENSE](LICENSE) file for license information.
+
+## Contributing
+
+Pull requests and issues are welcome! Please open an issue for questions, feature requests, or bug reports.
