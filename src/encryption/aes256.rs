@@ -1,4 +1,4 @@
-use crate::error::CryptPassError::{self, BadRequest};
+use crate::error::CryptPassError::{self, BadRequest, InternalServerError};
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rand::Rng;
@@ -61,15 +61,16 @@ pub(super) fn decryption(
         ));
     }
 
-    let encrypted_text_decoded: Vec<u8> =
-        BASE64_STANDARD.decode(prefix_encrypted_text_base64_split[2].as_bytes()).unwrap();
+    let encrypted_text_decoded: Vec<u8> = BASE64_STANDARD
+        .decode(prefix_encrypted_text_base64_split[2].as_bytes())
+        .map_err(|ex| BadRequest(format!("Error decoding encrypted_text_base64: {}", ex)))?;
     let encrypted_text_bin: Vec<u8> = encrypted_text_decoded.to_vec();
     type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
 
     let mut buf = vec![0u8; encrypted_text_bin.len()];
     let pt = Aes256CbcDec::new(&key.into(), &iv.into())
         .decrypt_padded_b2b_mut::<Pkcs7>(&encrypted_text_bin, &mut buf)
-        .unwrap();
+        .map_err(|ex| InternalServerError(format!("Error decrypting: {}", ex)))?;
     let pt_str = String::from_utf8_lossy(&pt);
     Ok(pt_str.to_string())
 }

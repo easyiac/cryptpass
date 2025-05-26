@@ -75,34 +75,38 @@ pub(crate) fn is_authorized(
 
     let user_option = services::users::get_user(username.as_ref(), conn)?;
 
-    if user_option.is_none() {
-        let msg = format!("User not found: {}", username);
-        warn!(
-            "Access denied for URI: {}, method: {}, origin: {}, reason: {}",
-            uri, method, origin, msg
-        );
-        Err(Unauthorized(msg))?
-    }
-
-    let user = user_option.unwrap();
-
-    if user.password_hash.is_none() {
-        let msg =
-            format!("User account is not configured for password authentication: {}", username);
-        warn!(
-            "Access denied for URI: {}, method: {}, origin: {}, reason: {}",
-            uri, method, origin, msg
-        );
-        Err(Unauthorized(msg))?
-    } else {
-        if !match_hash(password.as_ref(), user.password_hash.as_ref().unwrap()) {
-            let msg = format!("Invalid password for user: {}", username);
+    let user = match user_option {
+        Some(user) => user,
+        None => {
+            let msg = format!("User not found: {}", username);
             warn!(
                 "Access denied for URI: {}, method: {}, origin: {}, reason: {}",
                 uri, method, origin, msg
             );
             Err(Unauthorized(msg))?
         }
+    };
+
+    let user_password_hash = match user.password_hash {
+        Some(hash) => hash,
+        None => {
+            let msg =
+                format!("User account is not configured for password authentication: {}", username);
+            warn!(
+                "Access denied for URI: {}, method: {}, origin: {}, reason: {}",
+                uri, method, origin, msg
+            );
+            Err(Unauthorized(msg))?
+        }
+    };
+
+    if !match_hash(password.as_ref(), user_password_hash.as_ref()) {
+        let msg = format!("Invalid password for user: {}", username);
+        warn!(
+            "Access denied for URI: {}, method: {}, origin: {}, reason: {}",
+            uri, method, origin, msg
+        );
+        Err(Unauthorized(msg))?
     }
     Ok(())
 }

@@ -59,12 +59,13 @@ pub(crate) fn dec(
             InternalServerError(format!("Error reading encryption_key from db: {}", ex))
         })?;
 
-    if encryption_key_encrypted.is_empty() {
-        return Err(NotFound("Encryption key not found".to_string()));
-    }
+    let encryption_key_encrypted = encryption_key_encrypted
+        .first()
+        .ok_or_else(|| NotFound("Encryption key not found".to_string()))?;
+
     let (master_enc_key, master_enc_key_hash) = get_master_key()?;
     if encryption::match_hash(
-        encryption_key_encrypted.first().unwrap().encryptor_key_hash.as_str(),
+        encryption_key_encrypted.encryptor_key_hash.as_str(),
         master_enc_key_hash.as_str(),
     ) {
         return Err(BadRequest(
@@ -74,7 +75,7 @@ pub(crate) fn dec(
 
     let encryption_key = encryption::decrypt(
         &master_enc_key.clone(),
-        &encryption_key_encrypted.first().unwrap().encrypted_encryption_key,
+        &encryption_key_encrypted.encrypted_encryption_key,
     )?;
 
     encryption::decrypt(encryption_key.as_str(), encrypted_value.encrypted_value.as_str())

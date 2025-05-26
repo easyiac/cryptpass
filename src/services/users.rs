@@ -18,10 +18,12 @@ pub(crate) fn get_user(
         .select(UserModel::as_select())
         .load(conn)
         .map_err(|ex| InternalServerError(format!("Error reading user from db: {}", ex)))?;
-    if result.first().is_none() {
-        return Ok(None);
+
+    let user_model = match result.first() {
+        Some(user) => user,
+        None => return Ok(None),
     };
-    let user_model = result.first().unwrap();
+
     let user = User {
         id: user_model.id,
         username: user_model.username.to_string(),
