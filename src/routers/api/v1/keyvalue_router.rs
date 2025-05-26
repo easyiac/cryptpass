@@ -1,5 +1,5 @@
 use crate::{
-    routers::CryptPassError::{self, InternalServerError, MethodNotAllowed, NotFound},
+    routers::CryptPassError::{self, BadRequest, InternalServerError, MethodNotAllowed, NotFound},
     services, AppState,
 };
 use axum::{
@@ -59,7 +59,9 @@ async fn data(
             }
         }
         "PUT" => {
-            let body_str = body.unwrap().to_string();
+            let body_str =
+                body.ok_or_else(|| BadRequest("Missing request body".to_string()))?.to_string();
+
             let version = version_query.version;
             let new_version = conn
                 .interact(move |conn| {

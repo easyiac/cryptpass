@@ -98,6 +98,7 @@ pub(crate) fn get_details(
     let result = schema::key_value::dsl::key_value
         .filter(schema::key_value::version.eq(latest_version))
         .filter(schema::key_value::key.eq(key))
+        .filter(schema::key_value::deleted.eq(false))
         .limit(1)
         .select(KeyValueModel::as_select())
         .load(conn)

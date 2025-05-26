@@ -45,16 +45,17 @@ pub(crate) fn is_authorized(
         }
     }
 
-    if auth_token.is_none() {
-        let msg = "Missing authorization token for protected URI";
-        warn!(
-            "Access denied for URI: {}, method: {}, origin: {}, reason: {}",
-            uri, method, origin, msg
-        );
-        Err(Unauthorized(msg.to_string()))?
-    }
-
-    let token = auth_token.unwrap().trim_start_matches("Basic ").to_string();
+    let token = match auth_token {
+        Some(token) => token.trim_start_matches("Basic ").to_string(),
+        None => {
+            let msg = "Missing authorization token for protected URI";
+            warn!(
+                "Access denied for URI: {}, method: {}, origin: {}, reason: {}",
+                uri, method, origin, msg
+            );
+            return Err(Unauthorized(msg.to_string()));
+        }
+    };
 
     let decoded_bytes = BASE64_STANDARD
         .decode(token.clone())

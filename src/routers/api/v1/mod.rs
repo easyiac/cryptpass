@@ -38,7 +38,11 @@ async fn auth_layer(
 
     for (key, value) in request.headers().clone() {
         if key.is_some()
-            && (key.as_ref().unwrap().to_string().to_lowercase()
+            && (key
+                .as_ref()
+                .ok_or_else(|| CryptPassError::BadRequest("Bad auth header key".to_string()))?
+                .to_string()
+                .to_lowercase()
                 == configuration.server.auth_header_key.to_lowercase())
         {
             let val_str = value
