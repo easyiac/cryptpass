@@ -15,4 +15,4 @@ docker buildx build -f Dockerfile . \
     -t "10.8.33.192:8008/cryptpass/cryptpass:latest" \
     --platform linux/amd64,linux/arm64 \
     --output type=registry \
-    --progress=plain --network=none
+    --progress=plain
