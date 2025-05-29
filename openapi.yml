@@ -430,10 +430,16 @@ components:
         UnlockResponse:
             type: object
             properties:
-                message:
+                encrypted_key:
                     type: string
-                    description: Success message with key hash
-            required: [message]
+                    description: The encrypted internal encryption key
+                hash:
+                    type: string
+                    description: Hash of the internal encryption key
+                encryptor_hash:
+                    type: string
+                    description: Hash of the encryptor (master) key used
+            required: [encrypted_key, hash, encryptor_hash]
         Health:
             type: object
             properties:
