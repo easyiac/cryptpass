@@ -113,6 +113,7 @@ paths:
         put:
             tags:
                 - admin
+            security: []
             summary: Unlock system
             description: Set the master encryption key to unlock the system
             requestBody:
