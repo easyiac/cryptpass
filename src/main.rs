@@ -55,25 +55,10 @@ async fn main() {
     load_configuration();
     let configuration = CRYPTPASS_CONFIG_INSTANCE.get().expect("Configuration not initialized");
 
-    if let Some(master_enc_key) = &configuration.physical.master_encryption_key {
-        services::encryption::MASTER_ENCRYPTION_KEY
-            .set({
-                warn!("Setting physical master encryption key from configuration which is not recommended. Use /admin/unlock endpoint instead.");
-                info!("Encryption key hash: {}", encryption::hash(master_enc_key));
-                (master_enc_key.clone(), encryption::hash(master_enc_key))
-            })
-            .expect("Physical master encryption key set failed");
-    } else {
-        info!("No master encryption key provided in configuration. Use /admin/unlock endpoint to set it.");
-    }
-
     if Path::new(&configuration.physical.config.data_dir).exists()
         && !Path::new(&configuration.physical.config.data_dir).is_dir()
     {
-        panic!(
-            "Data directory path exists but is not a directory: {}",
-            configuration.physical.config.data_dir
-        );
+        panic!("Data directory path exists but is not a directory: {}", configuration.physical.config.data_dir);
     }
     if !Path::new(&configuration.physical.config.data_dir).exists() {
         fs::create_dir_all(&configuration.physical.config.data_dir).unwrap_or_else(|ex| {
@@ -85,39 +70,39 @@ async fn main() {
         info!("Data directory created: {}", configuration.physical.config.data_dir);
     }
 
-    let manager = Manager::new(
-        format!("{}/cryptpass.sqlite3", configuration.physical.config.data_dir),
-        Runtime::Tokio1,
-    );
+    let manager =
+        Manager::new(format!("{}/cryptpass.sqlite3", configuration.physical.config.data_dir), Runtime::Tokio1);
 
-    let pool = Pool::builder(manager).build().expect("Failed to build pool");
+    let pool = Pool::builder(manager).build().expect("Failed to build pool.");
 
-    {
-        let conn = pool.get().await.unwrap();
-        conn.interact(|conn| conn.run_pending_migrations(MIGRATIONS).map(|_| ()))
-            .await
-            .unwrap()
-            .unwrap();
-    }
+    let conn = pool.get().await.expect("Failed to get connection from pool.");
+    conn.interact(|conn| conn.run_pending_migrations(MIGRATIONS).map(|_| ()))
+        .await
+        .expect("Failed to run pending migrations, Unable to interact with database")
+        .expect("Unable to run pending migrations in database");
 
     info!("Migrations completed");
 
-    {
-        let conn = pool.get().await.unwrap();
-        conn.interact(|conn| auth::root::create_root_user(conn)).await.unwrap().unwrap();
-    }
     info!("Authorization header key: {}", configuration.server.auth_header_key);
+    if let Some(master_enc_key) = &configuration.physical.master_encryption_key {
+        warn!("Setting physical master encryption key from configuration which is not recommended. Use /admin/unlock endpoint instead.");
+        info!("Encryption key hash: {}", encryption::hash(master_enc_key));
 
+        conn.interact(|conn| services::init_unlock(master_enc_key.clone(), conn))
+            .await
+            .expect("Failed to set encryption key, Unable to interact with database")
+            .expect("Unable to set encryption key in database");
+        info!("Encryption key set");
+    } else {
+        info!("No master encryption key provided in configuration. Use /admin/unlock endpoint to set it.");
+    }
     let app_state = AppState { pool };
-    routers::axum_server(app_state)
-        .await
-        .unwrap_or_else(|ex| panic!("Unable to start server: {}", ex))
+    routers::axum_server(app_state).await.unwrap_or_else(|ex| panic!("Unable to start server: {}", ex))
 }
 
 pub fn initialize_logging() {
     println!("Initializing logging...");
-    let log_level =
-        std::env::var("CRYPTPASS_LOG_LEVEL").unwrap_or_else(|_| "INFO".to_string()).to_uppercase();
+    let log_level = std::env::var("CRYPTPASS_LOG_LEVEL").unwrap_or_else(|_| "INFO".to_string()).to_uppercase();
 
     let log_levels = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"];
     if !log_levels.contains(&&*log_level) {
@@ -125,15 +110,11 @@ pub fn initialize_logging() {
     }
 
     println!("Log level: {}", log_level);
-    let log_dir =
-        std::env::var("CRYPTPASS_LOG_DIR").unwrap_or_else(|_| "/var/log/cryptpass".to_string());
+    let log_dir = std::env::var("CRYPTPASS_LOG_DIR").unwrap_or_else(|_| "/var/log/cryptpass".to_string());
     println!("Log directory: {}", log_dir);
     if !Path::new(&log_dir).exists() {
-        std::fs::create_dir_all(&log_dir).unwrap_or_else(|ex| {
-            panic!(
-                "Log directory path does not exist and could not be created: {}, error: {}",
-                log_dir, ex
-            )
+        fs::create_dir_all(&log_dir).unwrap_or_else(|ex| {
+            panic!("Log directory path does not exist and could not be created: {}, error: {}", log_dir, ex)
         });
         println!("Log directory created: {}", log_dir);
     }
@@ -155,14 +136,12 @@ pub fn initialize_logging() {
         .expect("Failed to create error log file appender");
 
     // Custom timestamp format for IST (Indian Standard Time)
-    let ist_offset = time::UtcOffset::from_hms(5, 30, 0).unwrap(); // UTC+05:30
+    let ist_offset = time::UtcOffset::from_hms(5, 30, 0)
+        .expect("Failed to create UTC offset for IST, this is a bug, please report it"); // UTC+05:30
 
     let console_layer = fmt::layer()
         .with_writer(std::io::stdout)
-        .with_timer(fmt::time::OffsetTime::new(
-            ist_offset,
-            time::format_description::well_known::Rfc3339,
-        ))
+        .with_timer(fmt::time::OffsetTime::new(ist_offset, time::format_description::well_known::Rfc3339))
         .with_target(true)
         .with_thread_ids(false)
         .with_thread_names(false)
@@ -174,10 +153,7 @@ pub fn initialize_logging() {
     let general_file_layer = fmt::layer()
         .with_writer(general_file_appender)
         .with_ansi(false)
-        .with_timer(fmt::time::OffsetTime::new(
-            ist_offset,
-            time::format_description::well_known::Rfc3339,
-        ))
+        .with_timer(fmt::time::OffsetTime::new(ist_offset, time::format_description::well_known::Rfc3339))
         .with_target(true)
         .with_thread_ids(false)
         .with_thread_names(false)
@@ -189,10 +165,7 @@ pub fn initialize_logging() {
     let error_file_layer = fmt::layer()
         .with_writer(error_file_appender)
         .with_ansi(false)
-        .with_timer(fmt::time::OffsetTime::new(
-            ist_offset,
-            time::format_description::well_known::Rfc3339,
-        ))
+        .with_timer(fmt::time::OffsetTime::new(ist_offset, time::format_description::well_known::Rfc3339))
         .with_target(true)
         .with_thread_ids(false)
         .with_thread_names(false)
@@ -201,11 +174,7 @@ pub fn initialize_logging() {
         .compact()
         .with_filter(EnvFilter::new("warn"));
 
-    tracing_subscriber::registry()
-        .with(console_layer)
-        .with(general_file_layer)
-        .with(error_file_layer)
-        .init();
+    tracing_subscriber::registry().with(console_layer).with(general_file_layer).with(error_file_layer).init();
 
     error!("LOGGER TEST: Error logging enabled, this is not a error");
     warn!("LOGGER TEST: Warning logging enabled, this is not warning");
@@ -223,19 +192,14 @@ fn load_configuration() {
         default_file.to_string()
     });
 
-    if Path::new(configuration.clone().as_str()).exists()
-        && !Path::new(configuration.clone().as_str()).is_file()
-    {
+    if Path::new(configuration.clone().as_str()).exists() && !Path::new(configuration.clone().as_str()).is_file() {
         panic!("Configuration path exists but is not a regular file: {}", configuration);
     }
 
     if Path::new(configuration.clone().as_str()).exists() {
         info!("Reading configuration file: {}", configuration);
         configuration = fs::read_to_string(configuration.clone()).unwrap_or_else(|ex| {
-            panic!(
-                "Provided configuration {} is a file but could not be read, error: {}",
-                configuration, ex
-            )
+            panic!("Provided configuration {} is a file but could not be read, error: {}", configuration, ex)
         });
     } else {
         info!("Provided configuration is not a file, assuming it is a JSON string");
@@ -246,8 +210,7 @@ fn load_configuration() {
     }
 
     CRYPTPASS_CONFIG_INSTANCE.get_or_init(|| {
-        serde_json::from_str(configuration.as_str()).unwrap_or_else(|ex| {
-            panic!("Failed to parse configuration file: {}, error: {}", configuration, ex)
-        })
+        serde_json::from_str(configuration.as_str())
+            .unwrap_or_else(|ex| panic!("Failed to parse configuration file: {}, error: {}", configuration, ex))
     });
 }

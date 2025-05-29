@@ -18,7 +18,7 @@ pub struct VersionQuery {
     version: Option<i32>,
 }
 
-pub(crate) fn api() -> Router<AppState> {
+pub(crate) async fn api() -> Router<AppState> {
     Router::new()
         .route("/details/{*key}", any(details))
         .route("/data/{*key}", any(data))
@@ -37,19 +37,15 @@ async fn data(
 ) -> Result<impl IntoResponse, CryptPassError> {
     info!("Key Value data api request for key: {}", key);
     let pool = shared_state.pool;
-    let conn = pool
-        .get()
-        .await
-        .map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
+    let conn =
+        pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     match method.as_str() {
         "GET" => {
             let version = version_query.version;
             let value = conn
                 .interact(move |conn| services::key_value::read(key.as_str(), conn, version))
                 .await
-                .map_err(|e| {
-                    InternalServerError(format!("Error interacting with database: {}", e))
-                })??;
+                .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
             if let Some(value) = value {
                 let json_body = serde_json::from_str::<Value>(value.clone().as_str())
                     .map_err(|e| InternalServerError(format!("Error parsing JSON: {}", e)))?;
@@ -59,32 +55,21 @@ async fn data(
             }
         }
         "PUT" => {
-            let body_str =
-                body.ok_or_else(|| BadRequest("Missing request body".to_string()))?.to_string();
+            let body_str = body.ok_or_else(|| BadRequest("Missing request body".to_string()))?.to_string();
 
             let version = version_query.version;
             let new_version = conn
-                .interact(move |conn| {
-                    services::key_value::write(key.as_str(), body_str.as_str(), conn, version)
-                })
+                .interact(move |conn| services::key_value::write(key.as_str(), body_str.as_str(), conn, version))
                 .await
-                .map_err(|e| {
-                    InternalServerError(format!("Error interacting with database: {}", e))
-                })??;
+                .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
             Ok((StatusCode::CREATED, Json(serde_json::json!({"version": new_version}))))
         }
         "DELETE" => {
             conn.interact(move |conn| {
-                services::key_value::mark_version_for_delete(
-                    key.as_str(),
-                    conn,
-                    version_query.version,
-                )
+                services::key_value::mark_version_for_delete(key.as_str(), conn, version_query.version)
             })
             .await
-            .map_err(|e| {
-                InternalServerError(format!("Error interacting with database: {}", e))
-            })??;
+            .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
             Ok((StatusCode::OK, Json(serde_json::json!({}))))
         }
         _ => Err(MethodNotAllowed("Method not allowed".to_string())),
@@ -99,19 +84,15 @@ async fn details(
 ) -> Result<impl IntoResponse, CryptPassError> {
     info!("Received keyvalue details request for key: {}", key);
     let pool = shared_state.pool;
-    let conn = pool
-        .get()
-        .await
-        .map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
+    let conn =
+        pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     match method.as_str() {
         "GET" => {
             let version = version_query.version;
             let value = conn
                 .interact(move |conn| services::key_value::get_details(key.as_str(), conn, version))
                 .await
-                .map_err(|e| {
-                    InternalServerError(format!("Error interacting with database: {}", e))
-                })??;
+                .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
             if let Some(value) = value {
                 let json_body = serde_json::to_value(value)
                     .map_err(|e| InternalServerError(format!("Error parsing JSON: {}", e)))?;
@@ -137,15 +118,10 @@ async fn list_all_keys(
     list_keys("".to_string(), shared_state).await
 }
 
-async fn list_keys(
-    key: String,
-    shared_state: AppState,
-) -> Result<(StatusCode, Json<Vec<String>>), CryptPassError> {
+async fn list_keys(key: String, shared_state: AppState) -> Result<(StatusCode, Json<Vec<String>>), CryptPassError> {
     let pool = shared_state.pool;
-    let conn = pool
-        .get()
-        .await
-        .map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
+    let conn =
+        pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     info!("Listing keys for {}", key);
     let keys = conn
         .interact(move |conn| services::key_value::list_all_keys(key.as_str(), conn))

@@ -7,10 +7,7 @@ pub(crate) fn encrypt(key_iv_base64: &str, plaintext: &str) -> Result<String, Cr
     aes256::encryption(key_iv_base64, plaintext)
 }
 
-pub(crate) fn decrypt(
-    key_iv_base64: &str,
-    encrypted_text_base64: &str,
-) -> Result<String, CryptPassError> {
+pub(crate) fn decrypt(key_iv_base64: &str, encrypted_text_base64: &str) -> Result<String, CryptPassError> {
     aes256::decryption(key_iv_base64, encrypted_text_base64)
 }
 

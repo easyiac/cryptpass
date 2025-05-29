@@ -22,9 +22,8 @@ fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), CryptPassErro
     let iv_decoded: Vec<u8> = BASE64_STANDARD
         .decode(iv_base64.as_bytes())
         .map_err(|ex| BadRequest(format!("Error decoding iv_base64: {}", ex)))?;
-    let iv: [u8; 16] = iv_decoded
-        .try_into()
-        .map_err(|ex| BadRequest(format!("Error converting iv_decoded to [u8; 16]: {:?}", ex)))?;
+    let iv: [u8; 16] =
+        iv_decoded.try_into().map_err(|ex| BadRequest(format!("Error converting iv_decoded to [u8; 16]: {:?}", ex)))?;
     Ok((key, iv))
 }
 
@@ -44,21 +43,13 @@ pub(super) fn encryption(key_iv_base64: &str, plaintext: &str) -> Result<String,
     Ok(ct_base64)
 }
 
-pub(super) fn decryption(
-    key_iv_base64: &str,
-    prefix_encrypted_text_base64: &str,
-) -> Result<String, CryptPassError> {
+pub(super) fn decryption(key_iv_base64: &str, prefix_encrypted_text_base64: &str) -> Result<String, CryptPassError> {
     let (key, iv) = build_keys(key_iv_base64)?;
 
-    let prefix_encrypted_text_base64_split =
-        prefix_encrypted_text_base64.split("$:").collect::<Vec<&str>>();
+    let prefix_encrypted_text_base64_split = prefix_encrypted_text_base64.split("$:").collect::<Vec<&str>>();
 
-    if prefix_encrypted_text_base64_split.len() != 3
-        && prefix_encrypted_text_base64_split[1] != "AES256CBC"
-    {
-        return Err(BadRequest(
-            "Invalid data, it should start with enc:$:AES256CBC:$:".to_string(),
-        ));
+    if prefix_encrypted_text_base64_split.len() != 3 && prefix_encrypted_text_base64_split[1] != "AES256CBC" {
+        return Err(BadRequest("Invalid data, it should start with enc:$:AES256CBC:$:".to_string()));
     }
 
     let encrypted_text_decoded: Vec<u8> = BASE64_STANDARD
@@ -78,8 +69,7 @@ pub(super) fn decryption(
 #[tokio::test]
 async fn test() {
     println!("{:?}", generate_key());
-    let key_base64 =
-        "5jcK7IMk3+QbNLikFRl3Zwgl9xagKD87s5dT2UqaSR4=:$:5jcK7IMk3+QbNLikFRl3Zw==".to_string(); //gitleaks:allow
+    let key_base64 = "5jcK7IMk3+QbNLikFRl3Zwgl9xagKD87s5dT2UqaSR4=:$:5jcK7IMk3+QbNLikFRl3Zw==".to_string(); //gitleaks:allow
     let plaintext = "Hello, World!".to_string();
     let encrypted_text = "enc:$:AES256CBC:$:yQp5HF92QfpV/jdmPIDYJQ==".to_string();
     let enc = encryption(&key_base64, &plaintext).expect("Error encrypting");

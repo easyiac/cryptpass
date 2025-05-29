@@ -4,14 +4,13 @@ use crate::{
         models::{KeyValueModel, NewKeyValueModel},
         schema,
     },
-    services::encryption::{self, EncryptedValue},
+    services::encryption,
 };
 use diesel::{
-    dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection,
-    TextExpressionMethods,
+    dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection, TextExpressionMethods,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
-use tracing::warn;
+use tracing::{trace, warn};
 
 fn get_next_version(key: &str, conn: &mut SqliteConnection) -> i32 {
     let current_max = schema::key_value::table
@@ -51,18 +50,16 @@ pub(crate) fn write(
         }
         _ => get_next_version(key, conn),
     };
-    let encrypted_value = encryption::enc(&value, conn)?;
+    let encrypted_value = encryption::encrypt(&value, conn)?;
     let new_key_value = NewKeyValueModel {
-        id: None,
         key: &key.to_string(),
-        encrypted_value: &encrypted_value.encrypted_value,
+        encrypted_value: &encrypted_value,
         deleted: false,
         version: next_version,
         last_updated_at: SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|_| InternalServerError("System time before UNIX EPOCH".to_string()))?
             .as_millis() as i64,
-        encryptor_key_hash: &encrypted_value.encryption_key_hash,
     };
     diesel::insert_into(schema::key_value::table)
         .values(&new_key_value)
@@ -121,10 +118,8 @@ pub(crate) fn read(
     } else {
         Err(NotFound("Key not found".to_string()))?
     };
-    let encryption_key_hash = key_value.encryptor_key_hash.to_string();
     let encrypted_value = key_value.encrypted_value.to_string();
-    let decrypted_value =
-        encryption::dec(EncryptedValue { encrypted_value, encryption_key_hash }, conn)?;
+    let decrypted_value = encryption::decrypt(encrypted_value, conn)?;
     Ok(Some(decrypted_value))
 }
 
@@ -133,7 +128,7 @@ pub(crate) fn mark_version_for_delete(
     conn: &mut SqliteConnection,
     version_asked: Option<i32>,
 ) -> Result<(), CryptPassError> {
-    validate_keys(key, false, None)?;
+    validate_keys(key, false, version_asked)?;
 
     if let Some(v) = version_asked {
         diesel::update(schema::key_value::table)
@@ -141,33 +136,20 @@ pub(crate) fn mark_version_for_delete(
             .filter(schema::key_value::version.eq(v))
             .set(schema::key_value::deleted.eq(true))
             .execute(conn)
-            .map_err(|ex| {
-                InternalServerError(format!(
-                    "Error deleting key {}, version {} from db: {}",
-                    key, v, ex
-                ))
-            })?;
+            .map_err(|ex| InternalServerError(format!("Error deleting key {}, version {} from db: {}", key, v, ex)))?;
     } else {
         diesel::update(schema::key_value::table)
             .filter(schema::key_value::key.eq(key))
             .filter(schema::key_value::deleted.eq(false))
             .set(schema::key_value::deleted.eq(true))
             .execute(conn)
-            .map_err(|ex| {
-                InternalServerError(format!(
-                    "Error deleting all versions for key value from db: {}",
-                    ex
-                ))
-            })?;
+            .map_err(|ex| InternalServerError(format!("Error deleting all versions for key value from db: {}", ex)))?;
     }
 
     Ok(())
 }
 
-pub(crate) fn list_all_keys(
-    key: &str,
-    conn: &mut SqliteConnection,
-) -> Result<Vec<String>, CryptPassError> {
+pub(crate) fn list_all_keys(key: &str, conn: &mut SqliteConnection) -> Result<Vec<String>, CryptPassError> {
     validate_keys(key, true, None)?;
     let mut find_key = key.to_string();
     if !find_key.is_empty() {
@@ -185,11 +167,7 @@ pub(crate) fn list_all_keys(
         }))
 }
 
-fn validate_keys(
-    key: &str,
-    is_listing: bool,
-    version_asked: Option<i32>,
-) -> Result<(), CryptPassError> {
+fn validate_keys(key: &str, is_listing: bool, version_asked: Option<i32>) -> Result<(), CryptPassError> {
     if key.is_empty() && !is_listing {
         return Err(BadRequest("Key cannot be empty".to_string()));
     }
@@ -216,6 +194,7 @@ fn validate_keys(
     }
     if let Some(v) = version_asked {
         if v < 1 {
+            trace!("Version asked is less than 1, returning error key: {}, version: {}", key, v);
             return Err(BadRequest("Version cannot be less than 1".to_string()));
         }
     }

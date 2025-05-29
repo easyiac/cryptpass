@@ -23,9 +23,9 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
     let configuration = CRYPTPASS_CONFIG_INSTANCE.get().expect("Configuration not initialized.");
     let server = &configuration.server.clone();
     let socket_addr = format!("0.0.0.0:{}", server.port.to_string().as_str());
-    let addr: SocketAddr = socket_addr.parse().map_err(|ex| {
-        RouterError(format!("Unable to parse address: {}, error: {}", socket_addr, ex))
-    })?;
+    let addr: SocketAddr = socket_addr
+        .parse()
+        .map_err(|ex| RouterError(format!("Unable to parse address: {}, error: {}", socket_addr, ex)))?;
     let app = Router::new()
         .nest("/api", api::api(shared_state.clone()).await)
         .route("/health", any(handle_health))
@@ -33,12 +33,9 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
         .with_state(shared_state);
 
     if let Some(server_tls) = server.clone().tls {
-        let config = RustlsConfig::from_pem(
-            server_tls.ssl_cert_pem.into_bytes(),
-            server_tls.ssl_key_pem.into_bytes(),
-        )
-        .await
-        .map_err(|ex| RouterError(format!("Error creating rustls TLS config: {}", ex)))?;
+        let config = RustlsConfig::from_pem(server_tls.ssl_cert_pem.into_bytes(), server_tls.ssl_key_pem.into_bytes())
+            .await
+            .map_err(|ex| RouterError(format!("Error creating rustls TLS config: {}", ex)))?;
         info!("Starting server with https://{}", addr);
         axum_server::bind_rustls(addr, config)
             .serve(app.into_make_service_with_connect_info::<SocketAddr>())
@@ -107,10 +104,7 @@ where
     let bytes = match body.collect().await {
         Ok(collected) => collected.to_bytes(),
         Err(err) => {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                format!("failed to read {direction} body: {err}"),
-            ));
+            return Err((StatusCode::BAD_REQUEST, format!("failed to read {direction} body: {err}")));
         }
     };
     Ok(bytes)

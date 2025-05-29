@@ -38,8 +38,7 @@ impl IntoResponse for CryptPassError {
             CryptPassError::InternalServerError(e) => {
                 let random_uuid = Uuid::new_v4().to_string();
                 warn!("Internal Server Error: {} - {}", random_uuid, e);
-                let error_body =
-                    serde_json::json!({ "error": "Internal Server Error", "uuid": random_uuid });
+                let error_body = serde_json::json!({ "error": "Internal Server Error", "uuid": random_uuid });
                 (StatusCode::INTERNAL_SERVER_ERROR, axum::Json(error_body)).into_response()
             }
             CryptPassError::Unauthorized(e) => {

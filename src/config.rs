@@ -60,12 +60,7 @@ fn default_physical() -> Physical {
 }
 
 fn default_server() -> Server {
-    Server {
-        port: default_port(),
-        root_password: None,
-        auth_header_key: default_auth_header_key(),
-        tls: None,
-    }
+    Server { port: default_port(), root_password: None, auth_header_key: default_auth_header_key(), tls: None }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -24,7 +24,6 @@ pub(crate) struct Role {
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct User {
-    pub(crate) id: Option<i64>,
     pub(crate) username: String,
     pub(crate) email: Option<String>,
     pub(crate) password_hash: Option<String>,
@@ -33,4 +32,5 @@ pub(crate) struct User {
     pub(crate) last_login: i64,
     pub(crate) locked: bool,
     pub(crate) enabled: bool,
+    pub(crate) api_token_jwt_secret_b64_encrypted: String,
 }

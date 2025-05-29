@@ -2,6 +2,24 @@ use diesel::{Identifiable, Insertable, Queryable, Selectable};
 use serde::Serialize;
 
 #[derive(Queryable, Selectable, Debug, Identifiable)]
+#[diesel(table_name = crate::physical::schema::app_settings)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(primary_key(settings))]
+pub(crate) struct AppSettingsModel {
+    pub(crate) settings: String,
+    pub(crate) value: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::physical::schema::app_settings)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub(crate) struct NewAppSettingsModel<'a> {
+    pub(crate) settings: &'a String,
+    pub(crate) value: &'a String,
+    pub(crate) last_updated_at: &'a i64,
+}
+
+#[derive(Queryable, Selectable, Debug, Identifiable)]
 #[diesel(primary_key(encryption_key_hash))]
 #[diesel(table_name = crate::physical::schema::encryption_keys)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -15,7 +33,6 @@ pub(crate) struct EncryptionKeyModel {
 #[diesel(table_name = crate::physical::schema::encryption_keys)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub(crate) struct NewEncryptionKeyModel<'a> {
-    pub(crate) id: Option<&'a i64>,
     pub(crate) encrypted_encryption_key: &'a String,
     pub(crate) encryption_key_hash: &'a String,
     pub(crate) encryptor_key_hash: &'a String,
@@ -29,23 +46,19 @@ pub(crate) struct KeyValueModel {
     pub(crate) key: String,
     pub(crate) encrypted_value: String,
     pub(crate) version: i32,
-    pub(crate) encryptor_key_hash: String,
     pub(crate) deleted: bool,
     pub(crate) last_updated_at: i64,
-    pub(crate) id: Option<i64>,
 }
 
 #[derive(Insertable)]
 #[diesel(table_name = crate::physical::schema::key_value)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub(crate) struct NewKeyValueModel<'a> {
-    pub(crate) id: Option<&'a i64>,
     pub(crate) key: &'a String,
     pub(crate) encrypted_value: &'a String,
     pub(crate) deleted: bool,
     pub(crate) version: i32,
     pub(crate) last_updated_at: i64,
-    pub(crate) encryptor_key_hash: &'a String,
 }
 
 #[derive(Queryable, Selectable, Debug, Identifiable)]
@@ -53,7 +66,6 @@ pub(crate) struct NewKeyValueModel<'a> {
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[diesel(primary_key(username))]
 pub(crate) struct UserModel {
-    pub(crate) id: Option<i64>,
     pub(crate) username: String,
     pub(crate) email: Option<String>,
     pub(crate) password_hash: Option<String>,
@@ -62,13 +74,13 @@ pub(crate) struct UserModel {
     pub(crate) last_login: i64,
     pub(crate) locked: bool,
     pub(crate) enabled: bool,
+    pub(crate) api_token_jwt_secret_b64_encrypted: String,
 }
 
 #[derive(Insertable)]
 #[diesel(table_name = crate::physical::schema::users)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub(crate) struct NewUserModel<'a> {
-    pub(crate) id: Option<&'a i64>,
     pub(crate) username: &'a String,
     pub(crate) email: Option<&'a String>,
     pub(crate) password_hash: Option<&'a String>,
@@ -77,4 +89,5 @@ pub(crate) struct NewUserModel<'a> {
     pub(crate) last_login: &'a i64,
     pub(crate) locked: &'a bool,
     pub(crate) enabled: &'a bool,
+    pub(crate) api_token_jwt_secret_b64_encrypted: &'a String,
 }

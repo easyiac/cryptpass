@@ -8,10 +8,7 @@ use crate::{
 };
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection};
 
-pub(crate) fn get_user(
-    username: &str,
-    conn: &mut SqliteConnection,
-) -> Result<Option<User>, CryptPassError> {
+pub(crate) fn get_user(username: &str, conn: &mut SqliteConnection) -> Result<Option<User>, CryptPassError> {
     let result = schema::users::dsl::users
         .filter(schema::users::username.eq(username))
         .limit(1)
@@ -25,7 +22,6 @@ pub(crate) fn get_user(
     };
 
     let user = User {
-        id: user_model.id,
         username: user_model.username.to_string(),
         email: user_model.email.clone(),
         password_hash: user_model.password_hash.clone(),
@@ -35,15 +31,15 @@ pub(crate) fn get_user(
         last_login: user_model.last_login,
         locked: user_model.locked,
         enabled: user_model.enabled,
+        api_token_jwt_secret_b64_encrypted: user_model.api_token_jwt_secret_b64_encrypted.clone(),
     };
     Ok(Some(user))
 }
 
 pub(crate) fn create_user(user: User, conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
-    let roles_str = serde_json::to_string(&user.roles)
-        .map_err(|ex| BadRequest(format!("Error serializing roles: {}", ex)))?;
+    let roles_str =
+        serde_json::to_string(&user.roles).map_err(|ex| BadRequest(format!("Error serializing roles: {}", ex)))?;
     let user_model = NewUserModel {
-        id: user.id.as_ref(),
         username: &user.username,
         email: user.email.as_ref(),
         password_hash: user.password_hash.as_ref(),
@@ -52,6 +48,7 @@ pub(crate) fn create_user(user: User, conn: &mut SqliteConnection) -> Result<(),
         last_login: &user.last_login,
         locked: &user.locked,
         enabled: &user.enabled,
+        api_token_jwt_secret_b64_encrypted: &user.api_token_jwt_secret_b64_encrypted,
     };
     diesel::insert_into(schema::users::table)
         .values(&user_model)
@@ -61,8 +58,8 @@ pub(crate) fn create_user(user: User, conn: &mut SqliteConnection) -> Result<(),
 }
 
 pub(crate) fn update_user(user: User, conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
-    let roles_str = serde_json::to_string(&user.roles)
-        .map_err(|ex| BadRequest(format!("Error serializing roles: {}", ex)))?;
+    let roles_str =
+        serde_json::to_string(&user.roles).map_err(|ex| BadRequest(format!("Error serializing roles: {}", ex)))?;
     diesel::update(schema::users::table)
         .filter(schema::users::username.eq(user.username))
         .set((
