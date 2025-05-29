@@ -43,7 +43,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/User"
+                                $ref: "#/components/schemas/UserResponse"
                 "401":
                     description: Unauthorized
                     content:
@@ -96,7 +96,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/User"
+                                $ref: "#/components/schemas/UserResponse"
                 "400":
                     description: Bad request
                     content:
@@ -326,13 +326,9 @@ components:
                     type: string
                     description: Error message
             required: [error]
-        User:
+        UserResponse:
             type: object
             properties:
-                id:
-                    type: [integer, "null"]
-                    format: int64
-                    description: User ID
                 username:
                     type: string
                     description: Username
@@ -361,6 +357,10 @@ components:
                 enabled:
                     type: boolean
                     description: Whether the user is enabled
+                api_token_jwt_secret_b64_encrypted:
+                    type:
+                        - string
+                    description: JWT Secret.
             required: [username, roles, locked, enabled]
         Role:
             type: object
@@ -400,9 +400,6 @@ components:
                     minimum: 1
                     format: int32
                     description: Version number of the key-value pair
-                encryptor_key_hash:
-                    type: string
-                    description: Hash of the encryptor key used
                 deleted:
                     type: boolean
                     description: Whether the key has been deleted
@@ -410,11 +407,7 @@ components:
                     type: integer
                     format: int64
                     description: Timestamp of last update
-                id:
-                    type: integer
-                    format: int64
-                    description: Unique identifier
-            required: [key, encrypted_value, version, encryptor_key_hash, deleted, last_updated_at]
+            required: [key, encrypted_value, version, deleted, last_updated_at]
         KeyList:
             type: array
             items:
