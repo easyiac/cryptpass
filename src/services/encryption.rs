@@ -13,7 +13,7 @@ pub(crate) struct InternalEncryptionKey {
     pub(crate) hash: String,
 }
 
-pub(crate) static INTERNAL_ENCRYPTION_KEY: OnceLock<InternalEncryptionKey> = OnceLock::new(); // key, hash
+pub(crate) static INTERNAL_ENCRYPTION_KEY: OnceLock<InternalEncryptionKey> = OnceLock::new();
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct EncryptedValue {

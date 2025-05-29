@@ -120,7 +120,7 @@ pub fn initialize_logging() {
     }
 
     let general_file_appender = RollingFileAppender::builder()
-        .rotation(Rotation::NEVER) // We'll handle size-based rotation manually
+        .rotation(Rotation::DAILY)
         .filename_prefix("cryptpass")
         .filename_suffix("log")
         .max_log_files(5)
@@ -128,14 +128,13 @@ pub fn initialize_logging() {
         .expect("Failed to create general log file appender");
 
     let error_file_appender = RollingFileAppender::builder()
-        .rotation(Rotation::NEVER) // We'll handle size-based rotation manually
+        .rotation(Rotation::DAILY)
         .filename_prefix("cryptpass-error")
         .filename_suffix("log")
         .max_log_files(5)
         .build(&log_dir)
         .expect("Failed to create error log file appender");
 
-    // Custom timestamp format for IST (Indian Standard Time)
     let ist_offset = time::UtcOffset::from_hms(5, 30, 0)
         .expect("Failed to create UTC offset for IST, this is a bug, please report it"); // UTC+05:30
 
