@@ -347,7 +347,7 @@ dependencies = [
 
 [[package]]
 name = "cryptpass"
-version = "1.0.13"
+version = "1.0.14"
 dependencies = [
  "aes",
  "axum",
@@ -367,6 +367,7 @@ dependencies = [
  "sha2",
  "time",
  "tokio",
+ "tower-http",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
@@ -1663,6 +1664,22 @@ dependencies = [
  "pin-project-lite",
  "sync_wrapper",
  "tokio",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "tower-http"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fdb0c213ca27a9f57ab69ddb290fd80d970922355b83ae380b395d3986b8a2e"
+dependencies = [
+ "bitflags",
+ "bytes",
+ "http",
+ "http-body",
+ "pin-project-lite",
  "tower-layer",
  "tower-service",
  "tracing",

@@ -21,4 +21,5 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 FROM docker.io/library/debian:bookworm-slim
 ENV DEBIAN_FRONTEND=noninteractive
 COPY --from=builder /src/cryptpass /usr/local/bin/cryptpass
+#RUN apt-get update && apt-get install -y libsqlite3-dev # libsqlite3-sys = { version = "0.33.0", features = ["bundled", "cc"] }
 CMD [ "/usr/local/bin/cryptpass" ]
