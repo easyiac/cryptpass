@@ -68,7 +68,7 @@ Deployment is automated using **Ansible**.
 
 ### Steps
 
-1. Edit `ansible/inventory.yml` to set required variables (see template below):
+1. Edit `ansible/inventory.yaml` to set required variables (see template below):
 
     ```yaml
     all:
@@ -98,7 +98,7 @@ Deployment is automated using **Ansible**.
 2. [Optional] For Ansible vault diff support, add to `~/.gitattributes`:
 
     ```.gitignore (gitignore)
-    ansible/inventory.yml diff=ansible-vault merge=binary
+    ansible/inventory.yaml diff=ansible-vault merge=binary
     ```
 
    Then, configure git diff:

@@ -12,4 +12,4 @@ poetry install
 poetry run ansible-galaxy collection install community.general
 poetry run ansible-galaxy collection install community.docker
 poetry run ansible-galaxy role install geerlingguy.docker
-poetry run ansible-playbook ansible/playbook.yml
+poetry run ansible-playbook ansible/playbook.yaml
