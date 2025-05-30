@@ -1,6 +1,7 @@
 use crate::{
-    auth::roles::{Privilege, PrivilegeType, Role, RoleType, User},
+    auth::roles::{Privilege, PrivilegeType, Role, RoleType},
     error::CryptPassError::{self, BadRequest, InternalServerError, NotFound},
+    physical::models::UserModel,
     utils::hash,
 };
 use axum::{
@@ -48,7 +49,7 @@ async fn unlock(
 async fn get_user(
     Path(username): Path<String>,
     State(shared_state): State<crate::AppState>,
-) -> Result<(StatusCode, Json<User>), CryptPassError> {
+) -> Result<(StatusCode, Json<UserModel>), CryptPassError> {
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
@@ -66,7 +67,7 @@ async fn create_update_user(
     Path(username): Path<String>,
     State(shared_state): State<crate::AppState>,
     body: Json<Value>,
-) -> Result<(StatusCode, Json<User>), CryptPassError> {
+) -> Result<(StatusCode, Json<UserModel>), CryptPassError> {
     let current_epoch = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|_| InternalServerError("System time before UNIX EPOCH".to_string()))?
@@ -98,12 +99,13 @@ async fn create_update_user(
                 .await
                 .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
             is_new_user = true;
-            User {
+            UserModel {
                 username: user_err,
                 email: None,
                 password_hash: None,
                 password_last_changed: 0i64,
-                roles: default_roles.clone(),
+                roles: serde_json::to_string(&default_roles)
+                    .map_err(|_| InternalServerError("Failed to serialize roles for root user".to_string()))?,
                 last_login: 0i64,
                 locked: false,
                 enabled: true,
@@ -135,9 +137,7 @@ async fn create_update_user(
     };
 
     if let Some(roles) = body.get("roles") {
-        let roles_vec: Vec<Role> =
-            serde_json::from_value(roles.clone()).map_err(|e| BadRequest(format!("Error parsing roles: {}", e)))?;
-        user.roles = roles_vec;
+        user.roles = roles.to_string();
     };
     let user_res = user.clone();
     if is_new_user {

@@ -1,5 +1,5 @@
-use diesel::{Identifiable, Insertable, Queryable, Selectable};
-use serde::Serialize;
+use diesel::{AsChangeset, Identifiable, Insertable, Queryable, Selectable};
+use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Insertable, Selectable, Debug, Identifiable)]
 #[diesel(table_name = crate::physical::schema::app_settings)]
@@ -33,7 +33,7 @@ pub(crate) struct KeyValueModel {
     pub(crate) last_updated_at: i64,
 }
 
-#[derive(Queryable, Insertable, Selectable, Debug, Identifiable)]
+#[derive(Queryable, Insertable, Selectable, Debug, Identifiable, Serialize, Deserialize, Clone, AsChangeset)]
 #[diesel(table_name = crate::physical::schema::users)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[diesel(primary_key(username))]

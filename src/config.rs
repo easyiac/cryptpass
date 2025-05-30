@@ -1,6 +1,7 @@
 use crate::{
-    auth::roles::{Privilege, PrivilegeType, Role, RoleType, User},
+    auth::roles::{Privilege, PrivilegeType, Role, RoleType},
     error::CryptPassError::{self, BadRequest, InternalServerError},
+    physical::models::UserModel,
     services::{encryption::INTERNAL_ENCRYPTION_KEY, get_settings, set_settings, InternalEncryptionKeySettings},
     CRYPTPASS_CONFIG_INSTANCE,
 };
@@ -323,14 +324,15 @@ fn create_root_user(conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
             let mut api_token_jwt_secret = [0u8; 32];
             rng.fill(&mut api_token_jwt_secret);
             let api_token_jwt_secret_base64 = BASE64_STANDARD.encode(api_token_jwt_secret);
-            User {
+            UserModel {
                 username: "root".to_string(),
                 email: None,
                 password_hash: None,
                 password_last_changed: 0i64,
-                roles: roles.clone(),
                 last_login: 0i64,
                 locked: false,
+                roles: serde_json::to_string(&roles)
+                    .map_err(|ex| InternalServerError(format!("Failed to serialize roles: {}", ex)))?,
                 enabled: true,
                 api_token_jwt_secret_b64_encrypted: crate::services::encryption::encrypt(
                     api_token_jwt_secret_base64.as_ref(),
@@ -356,7 +358,8 @@ fn create_root_user(conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
 
     root_user.locked = false;
     root_user.enabled = true;
-    root_user.roles = roles;
+    root_user.roles = serde_json::to_string(&roles)
+        .map_err(|ex| InternalServerError(format!("Failed to serialize roles: {}", ex)))?;
     root_user.last_login = 0i64;
 
     if is_new_root_user {
