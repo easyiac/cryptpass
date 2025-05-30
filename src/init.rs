@@ -1,10 +1,4 @@
-use crate::{
-    auth::roles::{Privilege, PrivilegeType, Role, RoleType},
-    error::CryptPassError::{self, BadRequest, InternalServerError},
-    physical::models::UserModel,
-    services::{encryption::INTERNAL_ENCRYPTION_KEY, get_settings, set_settings, InternalEncryptionKeySettings},
-    CRYPTPASS_CONFIG_INSTANCE,
-};
+use crate::{auth::roles::{Privilege, PrivilegeType, Role, RoleType}, error::CryptPassError::{self, BadRequest, InternalServerError}, init, physical::models::UserModel, services::{encryption::INTERNAL_ENCRYPTION_KEY, get_settings, set_settings, InternalEncryptionKeySettings}, CRYPTPASS_CONFIG_INSTANCE};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use diesel::SqliteConnection;
 use rand::{distr::Alphanumeric, Rng};
@@ -115,7 +109,7 @@ pub(crate) struct Configuration {
     pub physical: Physical,
 }
 
-pub(crate) fn load_configuration() -> Configuration {
+pub(crate) fn load_configuration() -> Configuration {init::initialize_logging();
     let default_file = "/etc/cryptpass/config.json";
 
     let mut configuration: String = std::env::var("CRYPTPASS_CONFIG").unwrap_or_else(|ex| {

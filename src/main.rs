@@ -1,5 +1,5 @@
 mod auth;
-mod config;
+mod init;
 mod error;
 mod physical;
 mod routers;
@@ -12,7 +12,7 @@ use std::sync::OnceLock;
 use tracing::{info, warn};
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
-pub(crate) static CRYPTPASS_CONFIG_INSTANCE: OnceLock<config::Configuration> = OnceLock::new();
+pub(crate) static CRYPTPASS_CONFIG_INSTANCE: OnceLock<init::Configuration> = OnceLock::new();
 
 #[derive(Clone)]
 struct AppState {
@@ -21,9 +21,9 @@ struct AppState {
 
 #[tokio::main]
 async fn main() {
-    println!("{}", config::APP_ASCII_NAME);
-    config::initialize_logging();
-    CRYPTPASS_CONFIG_INSTANCE.get_or_init(|| config::load_configuration());
+    println!("{}", init::APP_ASCII_NAME);
+    init::initialize_logging();
+    CRYPTPASS_CONFIG_INSTANCE.get_or_init(|| init::load_configuration());
 
     let configuration = CRYPTPASS_CONFIG_INSTANCE.get().expect("Configuration not initialized");
 
@@ -45,7 +45,7 @@ async fn main() {
     info!("Authorization header key: {}", configuration.server.auth_header_key);
     if let Some(master_enc_key) = &configuration.physical.master_encryption_key {
         warn!("Setting physical master encryption key from configuration which is not recommended. Use /admin/unlock endpoint instead.");
-        conn.interact(|conn| config::init_unlock(master_enc_key.clone(), conn))
+        conn.interact(|conn| init::init_unlock(master_enc_key.clone(), conn))
             .await
             .expect("Failed to set encryption key, Unable to interact with database")
             .expect("Unable to set encryption key in database");

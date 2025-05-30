@@ -36,7 +36,7 @@ async fn unlock(
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     let set_key = conn
-        .interact(move |conn| crate::config::init_unlock(master_key, conn))
+        .interact(move |conn| crate::init::init_unlock(master_key, conn))
         .await
         .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
 
