@@ -27,7 +27,7 @@ variable.
 {
     "server": {
         "port": "Port, type: int, default: `8088`",
-        "root-password": "Root password, If not present in first run, it will be generated, and printed in the log on INFO level",
+        "root-password": "Root password, If not present in first run on the first run, it will be generated, and printed in the log on INFO level",
         "auth-header-key": "Auth header key, default is `X-CRYPTPASS-KEY`",
         "tls": {
             "key-pem": "PEM key, if missing then server will run in http",
@@ -35,7 +35,7 @@ variable.
         }
     },
     "physical": {
-        "master-encryption-key": "Master encryption key, Recommended: Set it via `/admin/unlock` endpoint",
+        "master-encryption-key": "Master encryption key, Recommended: Set it via api endpoint",
         "config": {
             "data-dir": "Path to data directory, Default is `/var/lib/cryptpass`"
         }
