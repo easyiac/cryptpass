@@ -1,10 +1,9 @@
 pub(crate) mod roles;
-pub(crate) mod root;
 
 use crate::{
-    utils::match_hash,
     error::CryptPassError::{self, InternalServerError, Unauthorized},
     services,
+    utils::match_hash,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use diesel::SqliteConnection;

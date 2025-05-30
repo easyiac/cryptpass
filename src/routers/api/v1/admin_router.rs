@@ -2,7 +2,6 @@ use crate::{
     auth::roles::{Privilege, PrivilegeType, Role, RoleType, User},
     utils::hash,
     error::CryptPassError::{self, BadRequest, InternalServerError, NotFound},
-    AppState,
 };
 use axum::{
     extract::{Path, State},
@@ -15,7 +14,7 @@ use rand::Rng;
 use serde_json::Value;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub(super) async fn api() -> Router<AppState> {
+pub(super) async fn api() -> Router<crate::AppState> {
     Router::new()
         .route("/user/{username}", put(create_update_user))
         .route("/user/{username}", get(get_user))
@@ -23,7 +22,7 @@ pub(super) async fn api() -> Router<AppState> {
 }
 
 async fn unlock(
-    State(shared_state): State<AppState>,
+    State(shared_state): State<crate::AppState>,
     body: Json<Value>,
 ) -> Result<(StatusCode, Json<Value>), CryptPassError> {
     let master_key = body
@@ -36,7 +35,7 @@ async fn unlock(
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     let set_key = conn
-        .interact(move |conn| crate::services::init_unlock(master_key, conn))
+        .interact(move |conn| crate::config::init_unlock(master_key, conn))
         .await
         .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
 
@@ -48,7 +47,7 @@ async fn unlock(
 
 async fn get_user(
     Path(username): Path<String>,
-    State(shared_state): State<AppState>,
+    State(shared_state): State<crate::AppState>,
 ) -> Result<(StatusCode, Json<User>), CryptPassError> {
     let pool = shared_state.pool;
     let conn =
@@ -65,7 +64,7 @@ async fn get_user(
 // #[debug_handler]
 async fn create_update_user(
     Path(username): Path<String>,
-    State(shared_state): State<AppState>,
+    State(shared_state): State<crate::AppState>,
     body: Json<Value>,
 ) -> Result<(StatusCode, Json<User>), CryptPassError> {
     let current_epoch = SystemTime::now()
