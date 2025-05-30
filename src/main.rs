@@ -64,7 +64,7 @@ async fn main() {
             .await
             .expect("Failed to set encryption key, Unable to interact with database")
             .expect("Unable to set encryption key in database");
-        info!("Encryption key set");
+        info!("Initialized encryption key");
     } else {
         info!("No master encryption key provided in configuration. Use /admin/unlock endpoint to set it.");
     }
