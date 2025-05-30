@@ -11,8 +11,9 @@ docker buildx build -f Dockerfile . \
     --build-arg RUST_VERSION="${rust_version}" \
     -t "docker.io/arpanrecme/cryptpass:${version}" \
     -t "docker.io/arpanrecme/cryptpass:latest" \
-    -t "10.8.33.192:8008/cryptpass/cryptpass:${version}" \
-    -t "10.8.33.192:8008/cryptpass/cryptpass:latest" \
     --platform linux/amd64,linux/arm64 \
     --output type=registry \
     --progress=plain
+
+#    -t "10.8.33.192:8008/cryptpass/cryptpass:${version}" \
+#    -t "10.8.33.192:8008/cryptpass/cryptpass:latest" \
