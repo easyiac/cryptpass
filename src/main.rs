@@ -8,7 +8,7 @@ mod utils;
 
 use deadpool_diesel::{sqlite::Pool, Manager, Runtime};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use std::{fs, path::Path, sync::OnceLock};
+use std::sync::OnceLock;
 use tracing::{info, warn};
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
@@ -23,36 +23,25 @@ struct AppState {
 async fn main() {
     println!("{}", config::APP_ASCII_NAME);
     config::initialize_logging();
-    config::load_configuration();
+    CRYPTPASS_CONFIG_INSTANCE.get_or_init(|| config::load_configuration());
+
     let configuration = CRYPTPASS_CONFIG_INSTANCE.get().expect("Configuration not initialized");
 
-    if Path::new(&configuration.physical.config.data_dir).exists()
-        && !Path::new(&configuration.physical.config.data_dir).is_dir()
-    {
-        panic!("Data directory path exists but is not a directory: {}", configuration.physical.config.data_dir);
-    }
-    if !Path::new(&configuration.physical.config.data_dir).exists() {
-        fs::create_dir_all(&configuration.physical.config.data_dir).unwrap_or_else(|ex| {
-            panic!(
-                "Data directory path does not exist and could not be created: {}, error: {}",
-                configuration.physical.config.data_dir, ex
-            )
-        });
-        info!("Data directory created: {}", configuration.physical.config.data_dir);
-    }
 
     let manager =
         Manager::new(format!("{}/cryptpass.sqlite3", configuration.physical.config.data_dir), Runtime::Tokio1);
 
     let pool = Pool::builder(manager).build().expect("Failed to build pool.");
-
     let conn = pool.get().await.expect("Failed to get connection from pool.");
-    conn.interact(|conn| conn.run_pending_migrations(MIGRATIONS).map(|_| ()))
-        .await
-        .expect("Failed to run pending migrations, Unable to interact with database")
-        .expect("Unable to run pending migrations in database");
 
-    info!("Migrations completed");
+    {
+        conn.interact(|conn| conn.run_pending_migrations(MIGRATIONS).map(|_| ()))
+            .await
+            .expect("Failed to run pending migrations, Unable to interact with database")
+            .expect("Unable to run pending migrations in database");
+
+        info!("Database migrations completed.");
+    }
 
     info!("Authorization header key: {}", configuration.server.auth_header_key);
     if let Some(master_enc_key) = &configuration.physical.master_encryption_key {

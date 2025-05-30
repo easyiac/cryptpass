@@ -114,10 +114,10 @@ pub(crate) struct Configuration {
     pub physical: Physical,
 }
 
-pub(crate) fn load_configuration() {
+pub(crate) fn load_configuration() -> Configuration {
     let default_file = "/etc/cryptpass/config.json";
 
-    let mut configuration = std::env::var("CRYPTPASS_CONFIG").unwrap_or_else(|ex| {
+    let mut configuration: String = std::env::var("CRYPTPASS_CONFIG").unwrap_or_else(|ex| {
         info!("Environment variable CRYPTPASS_CONFIG not set, error: {}", ex);
         info!("Using default configuration file: {}", default_file);
         default_file.to_string()
@@ -136,14 +136,24 @@ pub(crate) fn load_configuration() {
         info!("Provided configuration is not a file, assuming it is a JSON string");
     }
 
-    if CRYPTPASS_CONFIG_INSTANCE.get().is_some() {
-        panic!("Configuration already loaded, do not reload configuration multiple times");
-    }
+    let configuration: Configuration = serde_json::from_str(configuration.as_str())
+        .unwrap_or_else(|ex| panic!("Failed to parse configuration file: {}, error: {}", configuration, ex));
 
-    CRYPTPASS_CONFIG_INSTANCE.get_or_init(|| {
-        serde_json::from_str(configuration.as_str())
-            .unwrap_or_else(|ex| panic!("Failed to parse configuration file: {}, error: {}", configuration, ex))
-    });
+    if Path::new(&configuration.physical.config.data_dir).exists()
+        && !Path::new(&configuration.physical.config.data_dir).is_dir()
+    {
+        panic!("Data directory path exists but is not a directory: {}", configuration.physical.config.data_dir);
+    }
+    if !Path::new(&configuration.physical.config.data_dir).exists() {
+        fs::create_dir_all(&configuration.physical.config.data_dir).unwrap_or_else(|ex| {
+            panic!(
+                "Data directory path does not exist and could not be created: {}, error: {}",
+                configuration.physical.config.data_dir, ex
+            )
+        });
+        info!("Data directory created: {}", configuration.physical.config.data_dir);
+    }
+    configuration
 }
 
 pub(crate) fn initialize_logging() {
