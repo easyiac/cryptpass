@@ -33,8 +33,8 @@ fn is_version_exists(key: &str, version: i32, conn: &mut SqliteConnection) -> bo
 pub(crate) fn write(
     key: &str,
     value: &str,
-    conn: &mut SqliteConnection,
     version_asked: Option<i32>,
+    conn: &mut SqliteConnection,
 ) -> Result<i32, CryptPassError> {
     validate_keys(key, false, version_asked)?;
 
@@ -78,8 +78,8 @@ fn get_latest_version(key: &str, conn: &mut SqliteConnection) -> i32 {
 
 pub(crate) fn get_details(
     key: &str,
-    conn: &mut SqliteConnection,
     version_asked: Option<i32>,
+    conn: &mut SqliteConnection,
 ) -> Result<Option<KeyValueModel>, CryptPassError> {
     validate_keys(key, false, version_asked)?;
     let latest_version = match version_asked {
@@ -107,10 +107,10 @@ pub(crate) fn get_details(
 
 pub(crate) fn read(
     key: &str,
-    conn: &mut SqliteConnection,
     version_asked: Option<i32>,
+    conn: &mut SqliteConnection,
 ) -> Result<Option<String>, CryptPassError> {
-    let key_value = if let Some(kv) = get_details(key, conn, version_asked)? {
+    let key_value = if let Some(kv) = get_details(key, version_asked, conn)? {
         kv
     } else {
         Err(NotFound("Key not found".to_string()))?
@@ -122,8 +122,8 @@ pub(crate) fn read(
 
 pub(crate) fn mark_version_for_delete(
     key: &str,
-    conn: &mut SqliteConnection,
     version_asked: Option<i32>,
+    conn: &mut SqliteConnection,
 ) -> Result<(), CryptPassError> {
     validate_keys(key, false, version_asked)?;
 

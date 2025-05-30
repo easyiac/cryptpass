@@ -43,7 +43,7 @@ async fn data(
         "GET" => {
             let version = version_query.version;
             let value = conn
-                .interact(move |conn| services::key_value::read(key.as_str(), conn, version))
+                .interact(move |conn| services::key_value::read(key.as_str(), version, conn))
                 .await
                 .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
             if let Some(value) = value {
@@ -59,14 +59,14 @@ async fn data(
 
             let version = version_query.version;
             let new_version = conn
-                .interact(move |conn| services::key_value::write(key.as_str(), body_str.as_str(), conn, version))
+                .interact(move |conn| services::key_value::write(key.as_str(), body_str.as_str(), version, conn))
                 .await
                 .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
             Ok((StatusCode::CREATED, Json(serde_json::json!({"version": new_version}))))
         }
         "DELETE" => {
             conn.interact(move |conn| {
-                services::key_value::mark_version_for_delete(key.as_str(), conn, version_query.version)
+                services::key_value::mark_version_for_delete(key.as_str(), version_query.version, conn)
             })
             .await
             .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
@@ -90,7 +90,7 @@ async fn details(
         "GET" => {
             let version = version_query.version;
             let value = conn
-                .interact(move |conn| services::key_value::get_details(key.as_str(), conn, version))
+                .interact(move |conn| services::key_value::get_details(key.as_str(), version, conn))
                 .await
                 .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
             if let Some(value) = value {
