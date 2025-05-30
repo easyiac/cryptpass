@@ -14,7 +14,7 @@ use tracing::{debug, error, info, trace, warn};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 pub(crate) static CRYPTPASS_CONFIG_INSTANCE: OnceLock<config::Configuration> = OnceLock::new();
 
 #[derive(Clone)]
@@ -24,33 +24,7 @@ struct AppState {
 
 #[tokio::main]
 async fn main() {
-    println!(
-        r##"
-
-          _____                    _____                _____                    _____                _____                    _____                    _____                    _____                    _____
-         /\    \                  /\    \              |\    \                  /\    \              /\    \                  /\    \                  /\    \                  /\    \                  /\    \
-        /::\    \                /::\    \             |:\____\                /::\    \            /::\    \                /::\    \                /::\    \                /::\    \                /::\    \
-       /::::\    \              /::::\    \            |::|   |               /::::\    \           \:::\    \              /::::\    \              /::::\    \              /::::\    \              /::::\    \
-      /::::::\    \            /::::::\    \           |::|   |              /::::::\    \           \:::\    \            /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \
-     /:::/\:::\    \          /:::/\:::\    \          |::|   |             /:::/\:::\    \           \:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \
-    /:::/  \:::\    \        /:::/__\:::\    \         |::|   |            /:::/__\:::\    \           \:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \
-   /:::/    \:::\    \      /::::\   \:::\    \        |::|   |           /::::\   \:::\    \          /::::\    \      /::::\   \:::\    \      /::::\   \:::\    \       \:::\   \:::\    \       \:::\   \:::\    \
-  /:::/    / \:::\    \    /::::::\   \:::\    \       |::|___|______    /::::::\   \:::\    \        /::::::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    ___\:::\   \:::\    \    ___\:::\   \:::\    \
- /:::/    /   \:::\    \  /:::/\:::\   \:::\____\      /::::::::\    \  /:::/\:::\   \:::\____\      /:::/\:::\    \  /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /\   \:::\   \:::\    \  /\   \:::\   \:::\    \
-/:::/____/     \:::\____\/:::/  \:::\   \:::|    |    /::::::::::\____\/:::/  \:::\   \:::|    |    /:::/  \:::\____\/:::/  \:::\   \:::|    |/:::/  \:::\   \:::\____\/::\   \:::\   \:::\____\/::\   \:::\   \:::\____\
-\:::\    \      \::/    /\::/   |::::\  /:::|____|   /:::/~~~~/~~      \::/    \:::\  /:::|____|   /:::/    \::/    /\::/    \:::\  /:::|____|\::/    \:::\  /:::/    /\:::\   \:::\   \::/    /\:::\   \:::\   \::/    /
- \:::\    \      \/____/  \/____|:::::\/:::/    /   /:::/    /          \/_____/\:::\/:::/    /   /:::/    / \/____/  \/_____/\:::\/:::/    /  \/____/ \:::\/:::/    /  \:::\   \:::\   \/____/  \:::\   \:::\   \/____/
-  \:::\    \                    |:::::::::/    /   /:::/    /                    \::::::/    /   /:::/    /                    \::::::/    /            \::::::/    /    \:::\   \:::\    \       \:::\   \:::\    \
-   \:::\    \                   |::|\::::/    /   /:::/    /                      \::::/    /   /:::/    /                      \::::/    /              \::::/    /      \:::\   \:::\____\       \:::\   \:::\____\
-    \:::\    \                  |::| \::/____/    \::/    /                        \::/____/    \::/    /                        \::/____/               /:::/    /        \:::\  /:::/    /        \:::\  /:::/    /
-     \:::\    \                 |::|  ~|           \/____/                          ~~           \/____/                          ~~                    /:::/    /          \:::\/:::/    /          \:::\/:::/    /
-      \:::\    \                |::|   |                                                                                                               /:::/    /            \::::::/    /            \::::::/    /
-       \:::\____\               \::|   |                                                                                                              /:::/    /              \::::/    /              \::::/    /
-        \::/    /                \:|   |                                                                                                              \::/    /                \::/    /                \::/    /
-         \/____/                  \|___|                                                                                                               \/____/                  \/____/                  \/____/
-
-"##
-    );
+    println!("{}", config::APP_ASCII_NAME);
     initialize_logging();
     load_configuration();
     let configuration = CRYPTPASS_CONFIG_INSTANCE.get().expect("Configuration not initialized");
@@ -86,8 +60,6 @@ async fn main() {
     info!("Authorization header key: {}", configuration.server.auth_header_key);
     if let Some(master_enc_key) = &configuration.physical.master_encryption_key {
         warn!("Setting physical master encryption key from configuration which is not recommended. Use /admin/unlock endpoint instead.");
-        info!("Encryption key hash: {}", encryption::hash(master_enc_key));
-
         conn.interact(|conn| services::init_unlock(master_enc_key.clone(), conn))
             .await
             .expect("Failed to set encryption key, Unable to interact with database")
