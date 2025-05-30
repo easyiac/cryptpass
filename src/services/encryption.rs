@@ -1,5 +1,5 @@
 use crate::{
-    encryption,
+    utils,
     error::CryptPassError::{self, BadRequest, InternalServerError, NotFound},
     physical::{models::EncryptionKeyModel, schema::encryption_keys},
 };
@@ -23,10 +23,10 @@ pub(crate) struct EncryptedValue {
 
 pub(crate) fn encrypt(plaintext: &str, conn: &mut SqliteConnection) -> Result<String, CryptPassError> {
     let internal_encryption_key = get_internal_encryption_key()?;
-    let encryption_key = encryption::generate_key();
-    let encryption_key_hash = encryption::hash(&encryption_key);
-    let encrypted_value = encryption::encrypt(encryption_key.as_str(), plaintext)?;
-    let encrypted_encryption_key = encryption::encrypt(&internal_encryption_key.key, &encryption_key)?;
+    let encryption_key = utils::generate_key();
+    let encryption_key_hash = utils::hash(&encryption_key);
+    let encrypted_value = utils::encrypt(encryption_key.as_str(), plaintext)?;
+    let encrypted_encryption_key = utils::encrypt(&internal_encryption_key.key, &encryption_key)?;
     let new_encryption_key = crate::physical::models::NewEncryptionKeyModel {
         encrypted_encryption_key: &encrypted_encryption_key.to_string(),
         encryption_key_hash: &encryption_key_hash.to_string(),
@@ -65,7 +65,7 @@ pub(crate) fn decrypt(encrypted_value_json: String, conn: &mut SqliteConnection)
     let encryption_key_encrypted =
         encryption_key_encrypted.first().ok_or_else(|| NotFound("Encryption key not found".to_string()))?;
 
-    if encryption::match_hash(
+    if utils::match_hash(
         encryption_key_encrypted.encryptor_key_hash.as_str(),
         internal_encryption_key.hash.as_str(),
     ) {
@@ -73,7 +73,7 @@ pub(crate) fn decrypt(encrypted_value_json: String, conn: &mut SqliteConnection)
     }
 
     let encryption_key =
-        encryption::decrypt(&internal_encryption_key.key.clone(), &encryption_key_encrypted.encrypted_encryption_key)?;
+        utils::decrypt(&internal_encryption_key.key.clone(), &encryption_key_encrypted.encrypted_encryption_key)?;
 
-    encryption::decrypt(encryption_key.as_str(), encrypted_value.encrypted_value.as_str())
+    utils::decrypt(encryption_key.as_str(), encrypted_value.encrypted_value.as_str())
 }

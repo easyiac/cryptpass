@@ -25,7 +25,7 @@ pub(crate) fn init_unlock(
     conn: &mut SqliteConnection,
 ) -> Result<InternalEncryptionKeySettings, CryptPassError> {
     info!("Initializing unlock");
-    let master_key_hash = crate::encryption::hash(&master_key);
+    let master_key_hash = crate::utils::hash(&master_key);
     let existing_internal_encryption_key_encrypted_str =
         get_settings("INTERNAL_ENCRYPTION_KEY_ENCRYPTED".to_string(), conn)?;
     let internal_encryption_key = match existing_internal_encryption_key_encrypted_str {
@@ -38,8 +38,8 @@ pub(crate) fn init_unlock(
                 return Err(BadRequest("Internal encryption key is encrypted with a different master key".to_string()));
             }
             let internal_encryption_key =
-                crate::encryption::decrypt(&master_key, &existing_internal_encryption_key.encrypted_key)?;
-            let internal_encryption_key_hash = crate::encryption::hash(&internal_encryption_key);
+                crate::utils::decrypt(&master_key, &existing_internal_encryption_key.encrypted_key)?;
+            let internal_encryption_key_hash = crate::utils::hash(&internal_encryption_key);
             if internal_encryption_key_hash != existing_internal_encryption_key.hash {
                 return Err(BadRequest("Internal encryption key hash does not match existing key hash".to_string()));
             }
@@ -47,14 +47,14 @@ pub(crate) fn init_unlock(
         }
         None => {
             info!("Internal encryption key does not exist, generating new key");
-            let new_key = crate::encryption::generate_key();
-            info!("New internal encryption key generated, hash: {}", crate::encryption::hash(new_key.as_str()));
+            let new_key = crate::utils::generate_key();
+            info!("New internal encryption key generated, hash: {}", crate::utils::hash(new_key.as_str()));
             new_key
         }
     };
     let internal_enc_key_settings = InternalEncryptionKeySettings {
-        encrypted_key: crate::encryption::encrypt(&master_key.clone(), &internal_encryption_key)?,
-        hash: crate::encryption::hash(&internal_encryption_key),
+        encrypted_key: crate::utils::encrypt(&master_key.clone(), &internal_encryption_key)?,
+        hash: crate::utils::hash(&internal_encryption_key),
         encryptor_hash: master_key_hash,
     };
 

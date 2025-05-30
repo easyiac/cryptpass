@@ -1,11 +1,10 @@
 mod auth;
 mod config;
-mod encryption;
+mod utils;
 mod error;
 mod physical;
 mod routers;
 mod services;
-mod utils;
 
 use deadpool_diesel::{sqlite::Pool, Manager, Runtime};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};

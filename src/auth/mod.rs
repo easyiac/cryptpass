@@ -2,7 +2,7 @@ pub(crate) mod roles;
 pub(crate) mod root;
 
 use crate::{
-    encryption::match_hash,
+    utils::match_hash,
     error::CryptPassError::{self, InternalServerError, Unauthorized},
     services,
 };

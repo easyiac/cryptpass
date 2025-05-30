@@ -1,6 +1,6 @@
 use crate::{
     auth::roles::{Privilege, PrivilegeType, Role, RoleType, User},
-    encryption::hash,
+    utils::hash,
     error::CryptPassError::{self, InternalServerError},
     CRYPTPASS_CONFIG_INSTANCE,
 };
