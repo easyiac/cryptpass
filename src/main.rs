@@ -27,7 +27,6 @@ async fn main() {
 
     let configuration = CRYPTPASS_CONFIG_INSTANCE.get().expect("Configuration not initialized");
 
-
     let manager =
         Manager::new(format!("{}/cryptpass.sqlite3", configuration.physical.config.data_dir), Runtime::Tokio1);
 

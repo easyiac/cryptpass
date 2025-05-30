@@ -1,9 +1,6 @@
 use crate::{
     error::CryptPassError::{self, BadRequest, InternalServerError, NotFound},
-    physical::{
-        models::{KeyValueModel, NewKeyValueModel},
-        schema,
-    },
+    physical::{models::KeyValueModel, schema},
     services::encryption,
 };
 use diesel::{
@@ -51,9 +48,9 @@ pub(crate) fn write(
         _ => get_next_version(key, conn),
     };
     let encrypted_value = encryption::encrypt(&value, conn)?;
-    let new_key_value = NewKeyValueModel {
-        key: &key.to_string(),
-        encrypted_value: &encrypted_value,
+    let new_key_value = KeyValueModel {
+        key: key.to_string(),
+        encrypted_value,
         deleted: false,
         version: next_version,
         last_updated_at: SystemTime::now()

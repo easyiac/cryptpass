@@ -1,7 +1,7 @@
 use crate::{
-    utils,
     error::CryptPassError::{self, BadRequest, InternalServerError, NotFound},
     physical::{models::EncryptionKeyModel, schema::encryption_keys},
+    utils,
 };
 use diesel::{QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection};
 use serde::{Deserialize, Serialize};
@@ -27,10 +27,10 @@ pub(crate) fn encrypt(plaintext: &str, conn: &mut SqliteConnection) -> Result<St
     let encryption_key_hash = utils::hash(&encryption_key);
     let encrypted_value = utils::encrypt(encryption_key.as_str(), plaintext)?;
     let encrypted_encryption_key = utils::encrypt(&internal_encryption_key.key, &encryption_key)?;
-    let new_encryption_key = crate::physical::models::NewEncryptionKeyModel {
-        encrypted_encryption_key: &encrypted_encryption_key.to_string(),
-        encryption_key_hash: &encryption_key_hash.to_string(),
-        encryptor_key_hash: &internal_encryption_key.hash,
+    let new_encryption_key = EncryptionKeyModel {
+        encrypted_encryption_key: encrypted_encryption_key.to_string(),
+        encryption_key_hash: encryption_key_hash.to_string(),
+        encryptor_key_hash: internal_encryption_key.hash,
     };
     diesel::insert_into(encryption_keys::table)
         .values(&new_encryption_key)
@@ -65,10 +65,7 @@ pub(crate) fn decrypt(encrypted_value_json: String, conn: &mut SqliteConnection)
     let encryption_key_encrypted =
         encryption_key_encrypted.first().ok_or_else(|| NotFound("Encryption key not found".to_string()))?;
 
-    if utils::match_hash(
-        encryption_key_encrypted.encryptor_key_hash.as_str(),
-        internal_encryption_key.hash.as_str(),
-    ) {
+    if utils::match_hash(encryption_key_encrypted.encryptor_key_hash.as_str(), internal_encryption_key.hash.as_str()) {
         return Err(BadRequest("Encryption key hash does not match master encryption key hash.".to_string()));
     }
 

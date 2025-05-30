@@ -1,10 +1,7 @@
 use crate::{
     auth::roles::User,
     error::CryptPassError::{self, BadRequest, InternalServerError},
-    physical::{
-        models::{NewUserModel, UserModel},
-        schema,
-    },
+    physical::{models::UserModel, schema},
 };
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection};
 
@@ -39,16 +36,16 @@ pub(crate) fn get_user(username: &str, conn: &mut SqliteConnection) -> Result<Op
 pub(crate) fn create_user(user: User, conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
     let roles_str =
         serde_json::to_string(&user.roles).map_err(|ex| BadRequest(format!("Error serializing roles: {}", ex)))?;
-    let user_model = NewUserModel {
-        username: &user.username,
-        email: user.email.as_ref(),
-        password_hash: user.password_hash.as_ref(),
-        password_last_changed: &user.password_last_changed,
-        roles: &roles_str,
-        last_login: &user.last_login,
-        locked: &user.locked,
-        enabled: &user.enabled,
-        api_token_jwt_secret_b64_encrypted: &user.api_token_jwt_secret_b64_encrypted,
+    let user_model = UserModel {
+        username: user.username,
+        email: user.email,
+        password_hash: user.password_hash,
+        password_last_changed: user.password_last_changed,
+        roles: roles_str,
+        last_login: user.last_login,
+        locked: user.locked,
+        enabled: user.enabled,
+        api_token_jwt_secret_b64_encrypted: user.api_token_jwt_secret_b64_encrypted,
     };
     diesel::insert_into(schema::users::table)
         .values(&user_model)

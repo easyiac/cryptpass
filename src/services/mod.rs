@@ -1,6 +1,6 @@
 use crate::{
     error::CryptPassError::{self, InternalServerError},
-    physical::models::{AppSettingsModel, NewAppSettingsModel},
+    physical::models::AppSettingsModel,
 };
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection};
 use serde::{Deserialize, Serialize};
@@ -59,7 +59,7 @@ pub(crate) fn set_settings(
     } else {
         info!("Inserting settings: {} = {}", settings_key, settings_value);
         let new_settings =
-            NewAppSettingsModel { settings: &settings_key, value: &settings_value, last_updated_at: &current_epoch };
+            AppSettingsModel { settings: settings_key, value: settings_value, last_updated_at: current_epoch };
         diesel::insert_into(crate::physical::schema::app_settings::dsl::app_settings)
             .values(&new_settings)
             .execute(conn)

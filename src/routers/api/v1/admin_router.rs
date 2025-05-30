@@ -1,7 +1,7 @@
 use crate::{
     auth::roles::{Privilege, PrivilegeType, Role, RoleType, User},
-    utils::hash,
     error::CryptPassError::{self, BadRequest, InternalServerError, NotFound},
+    utils::hash,
 };
 use axum::{
     extract::{Path, State},
