@@ -116,7 +116,7 @@ pub(crate) fn is_authorized(
     );
 
     let public_uri_patterns =
-        vec!["/health*", "/openapi.json", "/openapi.yaml", "/favicon.ico", "/api/v1/unlock", "/api/v1/login"];
+        vec!["/health*", "/openapi.json", "/favicon.ico", "/unlock", "/login"];
 
     for pattern_str in public_uri_patterns {
         let regex = Regex::new(pattern_str).map_err(|e| {

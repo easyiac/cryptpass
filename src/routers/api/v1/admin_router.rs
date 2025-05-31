@@ -4,8 +4,8 @@ use crate::{
         CryptPassError::{self, BadRequest, InternalServerError, NotFound},
         CryptPassErrorResponse,
     },
-    physical::models::UserModel,
-    services::InternalEncryptionKeySettings,
+    physical::models::UserModel
+    ,
     utils::hash,
 };
 use axum::{
@@ -26,40 +26,12 @@ pub(super) async fn api() -> OpenApiRouter<crate::init::AppState> {
     OpenApiRouter::new()
         .route("/user/{username}", put(create_update_user))
         .route("/user/{username}", get(get_user))
-        .route("/unlock", put(unlock))
         .fallback(crate::routers::fallback::fallback_handler)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 pub(crate) struct UnlockRequestBody {
     pub token: String,
-}
-
-#[utoipa::path(
-    post,
-    path = "/api/v1/admin/unlock",
-    tag = "Admin",
-    responses(
-        (status = 200, description = "Application unlocked", body = InternalEncryptionKeySettings),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
-    ),
-    security()
-)]
-pub(crate) async fn unlock(
-    State(shared_state): State<crate::init::AppState>,
-    body: Json<UnlockRequestBody>,
-) -> Result<(StatusCode, Json<InternalEncryptionKeySettings>), CryptPassError> {
-    let master_key = body.token.clone();
-    let pool = shared_state.pool;
-    let conn =
-        pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
-
-    let set_key = conn
-        .interact(move |conn| crate::init::init_unlock(master_key, conn))
-        .await
-        .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
-
-    Ok((StatusCode::OK, Json(set_key)))
 }
 
 #[utoipa::path(

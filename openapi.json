@@ -20,47 +20,6 @@
     }
   ],
   "paths": {
-    "/api/v1/admin/unlock": {
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "operationId": "unlock",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UnlockRequestBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Application unlocked",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InternalEncryptionKeySettings"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CryptPassErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": []
-      }
-    },
     "/api/v1/admin/user/{username}": {
       "get": {
         "tags": [
@@ -622,12 +581,43 @@
         ]
       }
     },
-    "/api/v1/login": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Perpetual"
+        ],
+        "operationId": "health_handler",
+        "responses": {
+          "200": {
+            "description": "Health Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/login": {
       "post": {
         "tags": [
-          "Login"
+          "Perpetual"
         ],
-        "operationId": "login",
+        "operationId": "login_handler",
         "requestBody": {
           "content": {
             "application/json": {
@@ -673,19 +663,29 @@
         "security": []
       }
     },
-    "/health": {
-      "get": {
+    "/unlock": {
+      "post": {
         "tags": [
-          "Health"
+          "Perpetual"
         ],
-        "operationId": "handle_health",
+        "operationId": "unlock_handler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnlockRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
-            "description": "Health Response",
+            "description": "Application unlocked",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthResponse"
+                  "$ref": "#/components/schemas/InternalEncryptionKeySettings"
                 }
               }
             }
@@ -870,12 +870,8 @@
   },
   "tags": [
     {
-      "name": "Health",
-      "description": "Health related endpoints."
-    },
-    {
-      "name": "Login",
-      "description": "Login related endpoints."
+      "name": "Perpetual",
+      "description": "Core endpoints."
     },
     {
       "name": "Admin",

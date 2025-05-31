@@ -1,31 +1,27 @@
 pub(crate) mod api;
 mod fallback;
+mod health;
+mod login_auth;
+mod print_request_response;
+mod unlock;
 
 use crate::{
-    error::{
-        CryptPassError::{self, RouterError},
-        CryptPassErrorResponse,
-    },
+    error::CryptPassError::{self, RouterError},
     init::AppState,
     init::CRYPTPASS_CONFIG_INSTANCE,
 };
 use axum::{
-    body::{Body, Bytes},
-    extract::{ConnectInfo, Request},
-    http::{Method, StatusCode},
-    middleware::{from_fn, Next},
-    response::{IntoResponse, Response},
-    routing::any,
-    Json,
+    http::Method,
+    middleware::{self, from_fn},
+    routing::{any, post, put},
 };
 use axum_server::tls_rustls::RustlsConfig;
-use http_body_util::BodyExt;
-use serde::Serialize;
 use std::net::SocketAddr;
-use tracing::{info, trace};
+use tower_http::cors::{Any, CorsLayer};
+use tracing::info;
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
-    Modify, OpenApi, ToSchema,
+    Modify, OpenApi,
 };
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_rapidoc::RapiDoc;
@@ -49,9 +45,9 @@ impl Modify for SecurityAddon {
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        crate::routers::handle_health,
-        crate::routers::api::v1::login,
-        crate::routers::api::v1::admin_router::unlock,
+        crate::routers::health::health_handler,
+        crate::routers::login_auth::login_handler,
+        crate::routers::unlock::unlock_handler,
         crate::routers::api::v1::admin_router::get_user,
         crate::routers::api::v1::admin_router::create_update_user,
         crate::routers::api::v1::keyvalue_router::get_data,
@@ -63,8 +59,7 @@ impl Modify for SecurityAddon {
     ),
     modifiers(&SecurityAddon),
     tags(
-        (name = "Health", description = "Health related endpoints."),
-        (name = "Login", description = "Login related endpoints."),
+        (name = "Perpetual", description = "Core endpoints."),
         (name = "Admin", description = "Admin related endpoints."),
         (name = "Key-Value", description = "Key-Value related endpoints."),
     ),
@@ -87,10 +82,26 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
         .parse()
         .map_err(|ex| RouterError(format!("Unable to parse address: {}, error: {}", socket_addr, ex)))?;
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
+        .layer(
+            CorsLayer::new()
+                .allow_methods([
+                    Method::GET,
+                    Method::POST,
+                    Method::PUT,
+                    Method::DELETE,
+                    Method::HEAD,
+                    Method::CONNECT,
+                    Method::PATCH,
+                ])
+                .allow_origin(Any),
+        )
+        .route("/login", post(login_auth::login_handler))
+        .layer(middleware::from_fn_with_state(shared_state.clone(), login_auth::auth_layer))
         .nest("/api", api::api(shared_state.clone()).await)
-        .route("/health", any(handle_health))
+        .route("/health", any(health::health_handler))
+        .route("/unlock", put(unlock::unlock_handler))
         .fallback(fallback::fallback_handler)
-        .layer(from_fn(print_request_response))
+        .layer(from_fn(print_request_response::print_request_response))
         .with_state(shared_state)
         .split_for_parts();
     let router = router
@@ -119,74 +130,4 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
             .await
             .map_err(|ex| RouterError(format!("Error serving without rustls: {}", ex.to_string())))
     }
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct HealthResponse {
-    pub status: &'static str,
-}
-
-#[utoipa::path(
-    get,
-    path = "/health",
-    tag = "Health",
-    responses(
-        (status = 200, description = "Health Response", body = HealthResponse),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
-    ),
-    security()
-)]
-pub(crate) async fn handle_health() -> Result<Json<HealthResponse>, CryptPassError> {
-    Ok(Json(HealthResponse { status: "OK" }))
-}
-
-pub(super) async fn print_request_response(
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    method: Method,
-    request: Request,
-    next: Next,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
-    let user_agent = request
-        .headers()
-        .get("user-agent")
-        .map(|value| value.to_str().unwrap_or_default())
-        .unwrap_or_default()
-        .to_string();
-    let uri = request.uri().path().to_string();
-    let (parts, body) = request.into_parts();
-    let req_bytes = buffer_and_print("request", body).await?;
-    let req = Request::from_parts(parts, Body::from(req_bytes.clone()));
-
-    let res = next.run(req).await;
-
-    let (parts, body) = res.into_parts();
-    let res_bytes = buffer_and_print("response", body).await?;
-    let res = Response::from_parts(parts, Body::from(res_bytes.clone()));
-
-    trace!(
-        "Request from addr: {addr}, method: {method}, uri: {uri}, user_agent: {user_agent}, status: {status}, \
-        \"{req_bytes}\" -> \"{res_bytes}\"",
-        addr = addr,
-        method = method,
-        uri = uri,
-        status = res.status().as_u16(),
-        user_agent = user_agent,
-        req_bytes = std::str::from_utf8(&req_bytes).unwrap_or_default(),
-        res_bytes = std::str::from_utf8(&res_bytes).unwrap_or_default(),
-    );
-    Ok(res)
-}
-
-async fn buffer_and_print<B>(direction: &str, body: B) -> Result<Bytes, (StatusCode, String)>
-where
-    B: axum::body::HttpBody<Data = Bytes>,
-    B::Error: std::fmt::Display,
-{
-    let bytes = match body.collect().await {
-        Ok(collected) => collected.to_bytes(),
-        Err(err) => {
-            return Err((StatusCode::BAD_REQUEST, format!("failed to read {direction} body: {err}")));
-        }
-    };
-    Ok(bytes)
 }
