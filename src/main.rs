@@ -2,26 +2,23 @@ mod auth;
 mod error;
 mod init;
 mod physical;
-pub(crate) mod routers;
+mod routers;
 mod services;
 mod utils;
 
 use deadpool_diesel::{sqlite::Pool, Manager, Runtime};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use tracing::{info, warn};
-use crate::init::CRYPTPASS_CONFIG_INSTANCE;
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
-
-
 
 #[tokio::main]
 async fn main() {
     println!("{}", init::APP_ASCII_NAME);
     init::initialize_logging();
-    CRYPTPASS_CONFIG_INSTANCE.get_or_init(|| init::load_configuration());
+    init::CRYPTPASS_CONFIG_INSTANCE.get_or_init(|| init::load_configuration());
 
-    let configuration = CRYPTPASS_CONFIG_INSTANCE.get().expect("Configuration not initialized");
+    let configuration = init::CRYPTPASS_CONFIG_INSTANCE.get().expect("Configuration not initialized");
 
     let manager =
         Manager::new(format!("{}/cryptpass.sqlite3", configuration.server.physical.config.data_dir), Runtime::Tokio1);

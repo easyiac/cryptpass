@@ -5,7 +5,8 @@ use crate::{
         CryptPassError::{self, RouterError},
         UtoipaCryptPassError,
     },
-    init::AppState, init::CRYPTPASS_CONFIG_INSTANCE,
+    init::AppState,
+    init::CRYPTPASS_CONFIG_INSTANCE,
 };
 use axum::{
     body::{Body, Bytes},
@@ -68,7 +69,11 @@ impl Modify for SecurityAddon {
     ),
     info(
         description = "CryptPass API.",
-        license(name = "MIT", url = "https://opensource.org/licenses/MIT")
+        license(name = "MIT", url = "https://opensource.org/licenses/MIT"),
+    ),
+    servers(
+        (url = "https://cryptpass.blr-home.arpanrec.com:8088", description = "Production server"),
+        (url = "http://127.0.0.1:8088", description = "Local server")
     )
 )]
 pub(crate) struct ApiDoc;

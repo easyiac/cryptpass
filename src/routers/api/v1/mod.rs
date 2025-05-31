@@ -7,7 +7,8 @@ use crate::{
         CryptPassError::{self, InternalServerError},
         UtoipaCryptPassError,
     },
-    init::AppState, init::CRYPTPASS_CONFIG_INSTANCE,
+    init::AppState,
+    init::CRYPTPASS_CONFIG_INSTANCE,
 };
 use axum::{
     extract::{ConnectInfo, Request, State},

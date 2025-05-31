@@ -9,6 +9,16 @@
     },
     "version": "1.0.16"
   },
+  "servers": [
+    {
+      "url": "https://cryptpass.blr-home.arpanrec.com:8088",
+      "description": "Production server"
+    },
+    {
+      "url": "http://127.0.0.1:8088",
+      "description": "Local server"
+    }
+  ],
   "paths": {
     "/api/v1/admin/unlock": {
       "post": {

@@ -365,7 +365,7 @@ dependencies = [
 
 [[package]]
 name = "cryptpass"
-version = "1.0.16"
+version = "1.0.17"
 dependencies = [
  "aes",
  "axum",
