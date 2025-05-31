@@ -1,9 +1,10 @@
 pub(crate) mod api;
+mod fallback;
 
 use crate::{
     error::{
         CryptPassError::{self, RouterError},
-        UtoipaCryptPassError,
+        CryptPassErrorResponse,
     },
     init::AppState,
     init::CRYPTPASS_CONFIG_INSTANCE,
@@ -72,7 +73,6 @@ impl Modify for SecurityAddon {
         license(name = "MIT", url = "https://opensource.org/licenses/MIT"),
     ),
     servers(
-        (url = "https://cryptpass.blr-home.arpanrec.com:8088", description = "Production server"),
         (url = "http://127.0.0.1:8088", description = "Local server"),
         (url = "https://10.8.33.192:8088", description = "Local VPN server"),
     ),
@@ -89,6 +89,7 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .nest("/api", api::api(shared_state.clone()).await)
         .route("/health", any(handle_health))
+        .fallback(fallback::fallback_handler)
         .layer(from_fn(print_request_response))
         .with_state(shared_state)
         .split_for_parts();
@@ -131,7 +132,7 @@ pub struct HealthResponse {
     tag = "Health",
     responses(
         (status = 200, description = "Health Response", body = HealthResponse),
-        (status = 500, description = "Internal server error", body = UtoipaCryptPassError)
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
     ),
     security()
 )]

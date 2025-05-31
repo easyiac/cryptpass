@@ -2,7 +2,7 @@ use crate::{
     auth::roles::{Privilege, PrivilegeType, Role, RoleType},
     error::{
         CryptPassError::{self, BadRequest, InternalServerError, NotFound},
-        UtoipaCryptPassError,
+        CryptPassErrorResponse,
     },
     physical::models::UserModel,
     services::InternalEncryptionKeySettings,
@@ -27,6 +27,7 @@ pub(super) async fn api() -> OpenApiRouter<crate::init::AppState> {
         .route("/user/{username}", put(create_update_user))
         .route("/user/{username}", get(get_user))
         .route("/unlock", put(unlock))
+        .fallback(crate::routers::fallback::fallback_handler)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
@@ -40,7 +41,7 @@ pub(crate) struct UnlockRequestBody {
     tag = "Admin",
     responses(
         (status = 200, description = "Application unlocked", body = InternalEncryptionKeySettings),
-        (status = 500, description = "Internal server error", body = UtoipaCryptPassError)
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
     ),
     security()
 )]
@@ -52,6 +53,7 @@ pub(crate) async fn unlock(
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
+
     let set_key = conn
         .interact(move |conn| crate::init::init_unlock(master_key, conn))
         .await
@@ -69,9 +71,9 @@ pub(crate) async fn unlock(
     ),
     responses(
         (status = 200, description = "User", body = UserModel),
-        (status = 401, description = "Unauthorized", body = UtoipaCryptPassError),
-        (status = 404, description = "User not found", body = UtoipaCryptPassError),
-        (status = 500, description = "Internal server error", body = UtoipaCryptPassError)
+        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
+        (status = 404, description = "User not found", body = CryptPassErrorResponse),
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
     ),
     security(
         ("api_key" = [])
@@ -107,9 +109,9 @@ async fn get_user(
     ),
     responses(
         (status = 200, description = "User", body = UserModel),
-        (status = 404, description = "User not found", body = UtoipaCryptPassError),
-        (status = 401, description = "Unauthorized", body = UtoipaCryptPassError),
-        (status = 500, description = "Internal server error", body = UtoipaCryptPassError)
+        (status = 404, description = "User not found", body = CryptPassErrorResponse),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
     ),
     security(
         ("api_key" = [])

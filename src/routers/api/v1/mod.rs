@@ -5,7 +5,7 @@ use crate::{
     auth::{is_authorized, username_password_login, LoginRequestBody, LoginResponseBody},
     error::{
         CryptPassError::{self, InternalServerError},
-        UtoipaCryptPassError,
+        CryptPassErrorResponse,
     },
     init::AppState,
     init::CRYPTPASS_CONFIG_INSTANCE,
@@ -27,6 +27,7 @@ pub(super) async fn api(shared_state: AppState) -> OpenApiRouter<AppState> {
         .nest("/keyvalue", keyvalue_router::api().await)
         .route("/login", post(login))
         .layer(middleware::from_fn_with_state(shared_state.clone(), auth_layer))
+        .fallback(crate::routers::fallback::fallback_handler)
 }
 
 #[utoipa::path(
@@ -35,8 +36,8 @@ pub(super) async fn api(shared_state: AppState) -> OpenApiRouter<AppState> {
     tag = "Login",
     responses(
         (status = 200, description = "Create login token", body = LoginResponseBody),
-        (status = 401, description = "Unauthorized", body = UtoipaCryptPassError),
-        (status = 500, description = "Internal server error", body = UtoipaCryptPassError)
+        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
     ),
     security()
 )]

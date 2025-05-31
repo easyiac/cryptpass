@@ -1,6 +1,5 @@
 pub(crate) mod v1;
 
-use crate::init::AppState;
 use axum::http::Method;
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -8,7 +7,7 @@ use tower_http::{
 };
 use utoipa_axum::router::OpenApiRouter;
 
-pub(super) async fn api(shared_state: AppState) -> OpenApiRouter<AppState> {
+pub(super) async fn api(shared_state: crate::init::AppState) -> OpenApiRouter<crate::init::AppState> {
     OpenApiRouter::new()
         .nest("/v1", v1::api(shared_state).await)
         // .layer(CorsLayer::permissive())
@@ -26,4 +25,5 @@ pub(super) async fn api(shared_state: AppState) -> OpenApiRouter<AppState> {
                 .allow_origin(Any),
         )
         .layer(TraceLayer::new_for_http())
+        .fallback(crate::routers::fallback::fallback_handler)
 }

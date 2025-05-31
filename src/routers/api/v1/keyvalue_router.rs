@@ -1,5 +1,5 @@
 use crate::{
-    error::UtoipaCryptPassError,
+    error::CryptPassErrorResponse,
     init::AppState,
     physical::models::KeyValueModel,
     routers::CryptPassError::{self, InternalServerError, NotFound},
@@ -32,6 +32,7 @@ pub(crate) async fn api() -> OpenApiRouter<AppState> {
         .route("/list", get(list_all_keys))
         .route("/list/", get(list_all_keys))
         .route("/list/{*key}", get(list_selective_keys))
+        .fallback(crate::routers::fallback::fallback_handler)
 }
 
 #[utoipa::path(
@@ -44,9 +45,9 @@ pub(crate) async fn api() -> OpenApiRouter<AppState> {
     ),
     responses(
         (status = 200, description = "Value found", body = Value),
-        (status = 401, description = "Unauthorized", body = UtoipaCryptPassError),
-        (status = 404, description = "Key not found", body = UtoipaCryptPassError),
-        (status = 500, description = "Internal server error", body = UtoipaCryptPassError)
+        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
+        (status = 404, description = "Key not found", body = CryptPassErrorResponse),
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
     ),
     security(
         ("api_key" = [])
@@ -85,9 +86,9 @@ pub(crate) async fn get_data(
     ),
     responses(
         (status = 201, description = "Value written"),
-        (status = 401, description = "Unauthorized", body = UtoipaCryptPassError),
-        (status = 404, description = "Key not found", body = UtoipaCryptPassError),
-        (status = 500, description = "Internal server error", body = UtoipaCryptPassError),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
+        (status = 404, description = "Key not found", body = CryptPassErrorResponse),
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     request_body(
         content_type = "application/json",
@@ -128,9 +129,9 @@ pub(crate) async fn update_data(
     ),
     responses(
         (status = 204, description = "Value deleted"),
-        (status = 401, description = "Unauthorized", body = UtoipaCryptPassError),
-        (status = 404, description = "Key not found", body = UtoipaCryptPassError),
-        (status = 500, description = "Internal server error", body = UtoipaCryptPassError),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
+        (status = 404, description = "Key not found", body = CryptPassErrorResponse),
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     security(
         ("api_key" = [])
@@ -161,9 +162,9 @@ pub(crate) async fn delete_data(
     ),
     responses(
         (status = 200, description = "Key MetaData", body = KeyValueModel),
-        (status = 401, description = "Unauthorized", body = UtoipaCryptPassError),
-        (status = 404, description = "Key not found", body = UtoipaCryptPassError),
-        (status = 500, description = "Internal server error", body = UtoipaCryptPassError),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
+        (status = 404, description = "Key not found", body = CryptPassErrorResponse),
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     security(
         ("api_key" = [])
@@ -199,9 +200,9 @@ async fn details(
     ),
     responses(
         (status = 200, description = "List of keys", body = Vec<String>),
-        (status = 401, description = "Unauthorized", body = UtoipaCryptPassError),
-        (status = 404, description = "Key not found", body = UtoipaCryptPassError),
-        (status = 500, description = "Internal server error", body = UtoipaCryptPassError),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
+        (status = 404, description = "Key not found", body = CryptPassErrorResponse),
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     security(
         ("api_key" = [])
@@ -220,8 +221,8 @@ async fn list_selective_keys(
     tag = "Key-Value",
     responses(
         (status = 200, description = "List of keys", body = Vec<String>),
-        (status = 401, description = "Unauthorized", body = UtoipaCryptPassError),
-        (status = 404, description = "Key not found", body = UtoipaCryptPassError),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
+        (status = 404, description = "Key not found", body = CryptPassErrorResponse),
     ),
     security(
         ("api_key" = [])

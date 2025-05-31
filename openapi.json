@@ -11,10 +11,6 @@
   },
   "servers": [
     {
-      "url": "https://cryptpass.blr-home.arpanrec.com:8088",
-      "description": "Production server"
-    },
-    {
       "url": "http://127.0.0.1:8088",
       "description": "Local server"
     },
@@ -56,7 +52,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -98,7 +94,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -108,7 +104,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -118,7 +114,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -173,7 +169,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -183,7 +179,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -193,7 +189,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -249,7 +245,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -259,7 +255,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -269,7 +265,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -329,7 +325,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -339,7 +335,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -349,7 +345,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -398,7 +394,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -408,7 +404,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -418,7 +414,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -476,7 +472,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -486,7 +482,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -496,7 +492,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -534,7 +530,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -544,7 +540,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -593,7 +589,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -603,7 +599,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -613,7 +609,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -658,7 +654,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -668,7 +664,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -699,7 +695,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UtoipaCryptPassError"
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
                 }
               }
             }
@@ -711,6 +707,21 @@
   },
   "components": {
     "schemas": {
+      "CryptPassErrorResponse": {
+        "type": "object",
+        "required": [
+          "error",
+          "correlation_id"
+        ],
+        "properties": {
+          "correlation_id": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
       "HealthResponse": {
         "type": "object",
         "required": [
@@ -844,21 +855,6 @@
             "type": "string"
           },
           "username": {
-            "type": "string"
-          }
-        }
-      },
-      "UtoipaCryptPassError": {
-        "type": "object",
-        "required": [
-          "error",
-          "correlation_id"
-        ],
-        "properties": {
-          "correlation_id": {
-            "type": "string"
-          },
-          "error": {
             "type": "string"
           }
         }
