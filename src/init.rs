@@ -1,8 +1,15 @@
-use crate::{auth::roles::{Privilege, PrivilegeType, Role, RoleType}, error::CryptPassError::{self, BadRequest, InternalServerError}, init, physical::models::UserModel, services::{encryption::INTERNAL_ENCRYPTION_KEY, get_settings, set_settings, InternalEncryptionKeySettings}, CRYPTPASS_CONFIG_INSTANCE};
+use crate::{
+    auth::roles::{Privilege, PrivilegeType, Role, RoleType},
+    error::CryptPassError::{self, BadRequest, InternalServerError},
+    physical::models::UserModel,
+    services::{encryption::INTERNAL_ENCRYPTION_KEY, get_settings, set_settings, InternalEncryptionKeySettings},
+};
 use base64::{prelude::BASE64_STANDARD, Engine};
+use deadpool_diesel::sqlite::Pool;
 use diesel::SqliteConnection;
 use rand::{distr::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 use std::{
     fs,
     path::Path,
@@ -11,7 +18,12 @@ use std::{
 use tracing::{debug, error, info, trace, warn};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
+pub(crate) static CRYPTPASS_CONFIG_INSTANCE: OnceLock<Configuration> = OnceLock::new();
 
+#[derive(Clone)]
+pub(crate) struct AppState {
+    pub(crate) pool: Pool,
+}
 pub(crate) const APP_ASCII_NAME: &str = r##"
 
           _____                    _____                _____                    _____                _____                    _____                    _____                    _____                    _____
@@ -91,6 +103,9 @@ pub(crate) struct Server {
 
     #[serde(rename = "tls")]
     pub tls: Option<ServerTls>,
+
+    #[serde(default = "default_physical")]
+    pub physical: Physical,
 }
 
 fn default_physical() -> Physical {
@@ -98,18 +113,22 @@ fn default_physical() -> Physical {
 }
 
 fn default_server() -> Server {
-    Server { port: default_port(), root_password: None, auth_header_key: default_auth_header_key(), tls: None }
+    Server {
+        port: default_port(),
+        root_password: None,
+        auth_header_key: default_auth_header_key(),
+        tls: None,
+        physical: default_physical(),
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct Configuration {
     #[serde(default = "default_server")]
     pub server: Server,
-    #[serde(default = "default_physical")]
-    pub physical: Physical,
 }
 
-pub(crate) fn load_configuration() -> Configuration {init::initialize_logging();
+pub(crate) fn load_configuration() -> Configuration {
     let default_file = "/etc/cryptpass/config.json";
 
     let mut configuration: String = std::env::var("CRYPTPASS_CONFIG").unwrap_or_else(|ex| {
@@ -134,19 +153,19 @@ pub(crate) fn load_configuration() -> Configuration {init::initialize_logging();
     let configuration: Configuration = serde_json::from_str(configuration.as_str())
         .unwrap_or_else(|ex| panic!("Failed to parse configuration file: {}, error: {}", configuration, ex));
 
-    if Path::new(&configuration.physical.config.data_dir).exists()
-        && !Path::new(&configuration.physical.config.data_dir).is_dir()
+    if Path::new(&configuration.server.physical.config.data_dir).exists()
+        && !Path::new(&configuration.server.physical.config.data_dir).is_dir()
     {
-        panic!("Data directory path exists but is not a directory: {}", configuration.physical.config.data_dir);
+        panic!("Data directory path exists but is not a directory: {}", configuration.server.physical.config.data_dir);
     }
-    if !Path::new(&configuration.physical.config.data_dir).exists() {
-        fs::create_dir_all(&configuration.physical.config.data_dir).unwrap_or_else(|ex| {
+    if !Path::new(&configuration.server.physical.config.data_dir).exists() {
+        fs::create_dir_all(&configuration.server.physical.config.data_dir).unwrap_or_else(|ex| {
             panic!(
                 "Data directory path does not exist and could not be created: {}, error: {}",
-                configuration.physical.config.data_dir, ex
+                configuration.server.physical.config.data_dir, ex
             )
         });
-        info!("Data directory created: {}", configuration.physical.config.data_dir);
+        info!("Data directory created: {}", configuration.server.physical.config.data_dir);
     }
     configuration
 }

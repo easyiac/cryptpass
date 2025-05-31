@@ -1,37 +1,54 @@
 use crate::{
     auth::roles::{Privilege, PrivilegeType, Role, RoleType},
-    error::CryptPassError::{self, BadRequest, InternalServerError, NotFound},
+    error::{
+        CryptPassError::{self, BadRequest, InternalServerError, NotFound},
+        UtoipaCryptPassError,
+    },
     physical::models::UserModel,
+    services::InternalEncryptionKeySettings,
     utils::hash,
 };
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     routing::{get, put},
-    Json, Router,
+    Json,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::{SystemTime, UNIX_EPOCH};
+use utoipa::ToSchema;
+use utoipa_axum::router::OpenApiRouter;
 
-pub(super) async fn api() -> Router<crate::AppState> {
-    Router::new()
+pub(super) async fn api() -> OpenApiRouter<crate::init::AppState> {
+    OpenApiRouter::new()
         .route("/user/{username}", put(create_update_user))
         .route("/user/{username}", get(get_user))
         .route("/unlock", put(unlock))
 }
 
-async fn unlock(
-    State(shared_state): State<crate::AppState>,
-    body: Json<Value>,
-) -> Result<(StatusCode, Json<Value>), CryptPassError> {
-    let master_key = body
-        .get("key")
-        .ok_or_else(|| BadRequest("Missing 'key' in request body".to_string()))?
-        .as_str()
-        .ok_or_else(|| BadRequest("'key' must be a string".to_string()))?
-        .to_string();
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
+pub(crate) struct UnlockRequestBody {
+    pub token: String,
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/admin/unlock",
+    tag = "Admin",
+    responses(
+        (status = 200, description = "Application unlocked", body = InternalEncryptionKeySettings),
+        (status = 500, description = "Internal server error", body = UtoipaCryptPassError)
+    ),
+    security()
+)]
+pub(crate) async fn unlock(
+    State(shared_state): State<crate::init::AppState>,
+    body: Json<UnlockRequestBody>,
+) -> Result<(StatusCode, Json<InternalEncryptionKeySettings>), CryptPassError> {
+    let master_key = body.token.clone();
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
@@ -40,15 +57,29 @@ async fn unlock(
         .await
         .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
 
-    let value =
-        serde_json::to_value(set_key).map_err(|e| InternalServerError(format!("Serialization error: {}", e)))?;
-
-    Ok((StatusCode::OK, Json(value)))
+    Ok((StatusCode::OK, Json(set_key)))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/admin/user/{username}",
+    tag = "Admin",
+    params(
+        ("username" = String, Path, description = "Username of the user to get")
+    ),
+    responses(
+        (status = 200, description = "User", body = UserModel),
+        (status = 401, description = "Unauthorized", body = UtoipaCryptPassError),
+        (status = 404, description = "User not found", body = UtoipaCryptPassError),
+        (status = 500, description = "Internal server error", body = UtoipaCryptPassError)
+    ),
+    security(
+        ("api_key" = [])
+    )
+)]
 async fn get_user(
     Path(username): Path<String>,
-    State(shared_state): State<crate::AppState>,
+    State(shared_state): State<crate::init::AppState>,
 ) -> Result<(StatusCode, Json<UserModel>), CryptPassError> {
     let pool = shared_state.pool;
     let conn =
@@ -62,10 +93,31 @@ async fn get_user(
     Ok((StatusCode::OK, Json(user)))
 }
 
-// #[debug_handler]
+#[utoipa::path(
+    put,
+    path = "/api/v1/admin/user/{username}",
+    tag = "Admin",
+    params(
+        ("username" = String, Path, description = "Username of the user to update")
+    ),
+    request_body(
+        content_type = "application/json",
+        content = UserModel,
+        description = "User to update"
+    ),
+    responses(
+        (status = 200, description = "User", body = UserModel),
+        (status = 404, description = "User not found", body = UtoipaCryptPassError),
+        (status = 401, description = "Unauthorized", body = UtoipaCryptPassError),
+        (status = 500, description = "Internal server error", body = UtoipaCryptPassError)
+    ),
+    security(
+        ("api_key" = [])
+    )
+)]
 async fn create_update_user(
     Path(username): Path<String>,
-    State(shared_state): State<crate::AppState>,
+    State(shared_state): State<crate::init::AppState>,
     body: Json<Value>,
 ) -> Result<(StatusCode, Json<UserModel>), CryptPassError> {
     let current_epoch = SystemTime::now()

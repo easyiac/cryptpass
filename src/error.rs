@@ -2,11 +2,19 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use tracing::warn;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub(crate) struct UtoipaCryptPassError {
+    pub(crate) error: String,
+    pub(crate) correlation_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub(crate) enum CryptPassError {
     RouterError(String),
     NotFound(String),
@@ -30,30 +38,38 @@ impl Display for CryptPassError {
 }
 impl IntoResponse for CryptPassError {
     fn into_response(self) -> Response {
+        let random_uuid = Uuid::new_v4().to_string();
         match self {
             CryptPassError::NotFound(e) => {
-                let error_body = serde_json::json!({ "error": e });
+                warn!("Not Found: {} - {}", random_uuid, e);
+                let error_body = serde_json::json!(UtoipaCryptPassError { error: e, correlation_id: random_uuid });
                 (StatusCode::NOT_FOUND, axum::Json(error_body)).into_response()
             }
             CryptPassError::InternalServerError(e) => {
-                let random_uuid = Uuid::new_v4().to_string();
                 warn!("Internal Server Error: {} - {}", random_uuid, e);
-                let error_body = serde_json::json!({ "error": "Internal Server Error", "uuid": random_uuid });
+                let error_body = serde_json::json!(UtoipaCryptPassError {
+                    error: "Internal Server Error".to_string(),
+                    correlation_id: random_uuid
+                });
                 (StatusCode::INTERNAL_SERVER_ERROR, axum::Json(error_body)).into_response()
             }
             CryptPassError::Unauthorized(e) => {
-                let error_body = serde_json::json!({ "error": e });
+                warn!("Unauthorized: {} - {}", random_uuid, e);
+                let error_body = serde_json::json!(UtoipaCryptPassError { error: e, correlation_id: random_uuid });
                 (StatusCode::UNAUTHORIZED, axum::Json(error_body)).into_response()
             }
             CryptPassError::MethodNotAllowed(e) => {
-                let error_body = serde_json::json!({ "error": e });
+                warn!("Method Not Allowed: {} - {}", random_uuid, e);
+                let error_body = serde_json::json!(UtoipaCryptPassError { error: e, correlation_id: random_uuid });
                 (StatusCode::METHOD_NOT_ALLOWED, axum::Json(error_body)).into_response()
             }
             CryptPassError::RouterError(e) => {
+                warn!("Router Error: {} - {}", random_uuid, e);
                 panic!("Router Error, RouterErrors are not meant to be returned: {}", e)
             }
             CryptPassError::BadRequest(e) => {
-                let error_body = serde_json::json!({ "error": e });
+                warn!("Bad Request: {} - {}", random_uuid, e);
+                let error_body = serde_json::json!(UtoipaCryptPassError { error: e, correlation_id: random_uuid });
                 (StatusCode::BAD_REQUEST, axum::Json(error_body)).into_response()
             }
         }

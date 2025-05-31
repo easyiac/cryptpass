@@ -1,23 +1,19 @@
 mod auth;
-mod init;
 mod error;
+mod init;
 mod physical;
-mod routers;
+pub(crate) mod routers;
 mod services;
 mod utils;
 
 use deadpool_diesel::{sqlite::Pool, Manager, Runtime};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use std::sync::OnceLock;
 use tracing::{info, warn};
+use crate::init::CRYPTPASS_CONFIG_INSTANCE;
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
-pub(crate) static CRYPTPASS_CONFIG_INSTANCE: OnceLock<init::Configuration> = OnceLock::new();
 
-#[derive(Clone)]
-struct AppState {
-    pub(crate) pool: Pool,
-}
+
 
 #[tokio::main]
 async fn main() {
@@ -28,7 +24,7 @@ async fn main() {
     let configuration = CRYPTPASS_CONFIG_INSTANCE.get().expect("Configuration not initialized");
 
     let manager =
-        Manager::new(format!("{}/cryptpass.sqlite3", configuration.physical.config.data_dir), Runtime::Tokio1);
+        Manager::new(format!("{}/cryptpass.sqlite3", configuration.server.physical.config.data_dir), Runtime::Tokio1);
 
     let pool = Pool::builder(manager).build().expect("Failed to build pool.");
     let conn = pool.get().await.expect("Failed to get connection from pool.");
@@ -43,7 +39,7 @@ async fn main() {
     }
 
     info!("Authorization header key: {}", configuration.server.auth_header_key);
-    if let Some(master_enc_key) = &configuration.physical.master_encryption_key {
+    if let Some(master_enc_key) = &configuration.server.physical.master_encryption_key {
         warn!("Setting physical master encryption key from configuration which is not recommended. Use /admin/unlock endpoint instead.");
         conn.interact(|conn| init::init_unlock(master_enc_key.clone(), conn))
             .await
@@ -53,6 +49,6 @@ async fn main() {
     } else {
         info!("No master encryption key provided in configuration. Use /admin/unlock endpoint to set it.");
     }
-    let app_state = AppState { pool };
+    let app_state = init::AppState { pool };
     routers::axum_server(app_state).await.unwrap_or_else(|ex| panic!("Unable to start server: {}", ex))
 }

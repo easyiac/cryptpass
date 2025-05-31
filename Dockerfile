@@ -8,7 +8,7 @@ COPY . .
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \
-    cargo build --release
+    cargo build --release --bin cryptpass
 
 # Because the target directory is not available in the final image out side of the cache mount.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \

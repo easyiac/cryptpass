@@ -1,6 +1,6 @@
 [package]
 name = "cryptpass"
-version = "1.0.15"
+version = "1.0.16"
 edition = "2021"
 rust-version = "1.86.0"
 description = "Manage seed data for my home lab."
@@ -8,7 +8,11 @@ license-file = "LICENSE"
 
 [[bin]]
 name = "cryptpass"
-path = "src/main.rs"
+path = "./src/main.rs"
+
+[[bin]]
+name = "gen-openapi"
+path = "./src/gen_openapi.rs"
 
 [dependencies]
 tokio = { version = "1.45.1", features = ["full"] }
@@ -47,3 +51,10 @@ deadpool-diesel = { version = "0.6.1", features = [
 libsqlite3-sys = { version = "0.33.0", features = ["bundled", "cc"] }
 regex = "1.11.1"
 tower-http = { version = "0.6.4", features = ["cors", "trace"] }
+jsonwebtoken = "9.3.1"
+utoipa = { version = "5.3.1", features = ["axum_extras", "yaml", "debug"] }
+utoipa-axum = { version = "0.2.0", features = ["debug"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum", "debug", "debug-embed"] }
+utoipa-scalar = { version = "0.3.0", features = ["axum"] }
+utoipa-redoc = { version = "6.0.0", features = ["axum"] }
+utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }

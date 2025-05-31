@@ -32,12 +32,12 @@ variable.
         "tls": {
             "key-pem": "PEM key, if missing then server will run in http",
             "cert-pem": "PEM cert, if missing then server will run in http"
-        }
-    },
-    "physical": {
-        "master-encryption-key": "Master encryption key, Recommended: Set it via api endpoint",
-        "config": {
-            "data-dir": "Path to data directory, Default is `/var/lib/cryptpass`"
+        },
+        "physical": {
+            "master-encryption-key": "Master encryption key, Recommended: Set it via api endpoint",
+            "config": {
+                "data-dir": "Path to data directory, Default is `/var/lib/cryptpass`"
+            }
         }
     }
 }

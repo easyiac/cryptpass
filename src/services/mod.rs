@@ -6,12 +6,13 @@ use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper, SqliteC
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::info;
+use utoipa::ToSchema;
 
 pub(crate) mod encryption;
 pub(crate) mod key_value;
 pub(crate) mod users;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 pub(crate) struct InternalEncryptionKeySettings {
     pub(crate) encrypted_key: String,
     pub(crate) hash: String,

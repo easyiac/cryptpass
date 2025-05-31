@@ -1,25 +1,57 @@
-mod admin_router;
-mod keyvalue_router;
+pub(crate) mod admin_router;
+pub(crate) mod keyvalue_router;
 
 use crate::{
-    auth,
-    error::CryptPassError::{self, InternalServerError},
-    AppState, CRYPTPASS_CONFIG_INSTANCE,
+    auth::{is_authorized, username_password_login, LoginRequestBody, LoginResponseBody},
+    error::{
+        CryptPassError::{self, InternalServerError},
+        UtoipaCryptPassError,
+    },
+    init::AppState, init::CRYPTPASS_CONFIG_INSTANCE,
 };
 use axum::{
     extract::{ConnectInfo, Request, State},
     middleware,
     middleware::Next,
     response::IntoResponse,
-    Router,
+    routing::post,
+    Json,
 };
 use std::net::SocketAddr;
+use utoipa_axum::router::OpenApiRouter;
 
-pub(super) async fn api(shared_state: AppState) -> Router<AppState> {
-    Router::new()
+pub(super) async fn api(shared_state: AppState) -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
         .nest("/admin", admin_router::api().await)
         .nest("/keyvalue", keyvalue_router::api().await)
+        .route("/login", post(login))
         .layer(middleware::from_fn_with_state(shared_state.clone(), auth_layer))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/login",
+    tag = "Login",
+    responses(
+        (status = 200, description = "Create login token", body = LoginResponseBody),
+        (status = 401, description = "Unauthorized", body = UtoipaCryptPassError),
+        (status = 500, description = "Internal server error", body = UtoipaCryptPassError)
+    ),
+    security()
+)]
+pub(crate) async fn login(
+    State(shared_state): State<AppState>,
+    body: Json<LoginRequestBody>,
+) -> Result<Json<LoginResponseBody>, CryptPassError> {
+    let pool = shared_state.pool;
+    let conn =
+        pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
+
+    let result = conn
+        .interact(move |conn| username_password_login(&body, conn))
+        .await
+        .map_err(|e| InternalServerError(format!("Error interacting with connection: {}", e)))??;
+    Ok(Json(result))
 }
 
 async fn auth_layer(
@@ -54,7 +86,7 @@ async fn auth_layer(
 
     let pool = shared_state.pool;
     let conn = pool.get().await.map_err(|ex| InternalServerError(format!("Error getting connection: {}", ex)))?;
-    conn.interact(move |conn| auth::is_authorized(auth_token, uri, method, addr, conn))
+    conn.interact(move |conn| is_authorized(auth_token, uri, method, addr, conn))
         .await
         .map_err(|ex| InternalServerError(format!("Error interacting with connection: {}", ex)))??;
 
