@@ -13,7 +13,11 @@ use axum::{extract::State, http::StatusCode, Json};
     path = "/unlock",
     tag = "Perpetual",
     responses(
-        (status = 200, description = "Application unlocked", body = InternalEncryptionKeySettings),
+        (
+            status = 200,
+            description = "Internal encryption key details, Not the actual key",
+            body = InternalEncryptionKeySettings
+        ),
         (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
     ),
     security()

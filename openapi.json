@@ -681,7 +681,7 @@
         },
         "responses": {
           "200": {
-            "description": "Application unlocked",
+            "description": "Internal encryption key details, Not the actual key",
             "content": {
               "application/json": {
                 "schema": {

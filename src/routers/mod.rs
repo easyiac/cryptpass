@@ -1,9 +1,7 @@
 pub(crate) mod api;
 mod fallback;
-mod health;
-mod login_auth;
+mod perpetual;
 mod print_request_response;
-mod unlock;
 
 use crate::{
     error::CryptPassError::{self, RouterError},
@@ -45,9 +43,9 @@ impl Modify for SecurityAddon {
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        crate::routers::health::health_handler,
-        crate::routers::login_auth::login_handler,
-        crate::routers::unlock::unlock_handler,
+        crate::routers::perpetual::health::health_handler,
+        crate::routers::perpetual::login_auth::login_handler,
+        crate::routers::perpetual::unlock::unlock_handler,
         crate::routers::api::v1::admin_router::get_user,
         crate::routers::api::v1::admin_router::create_update_user,
         crate::routers::api::v1::keyvalue_router::get_data,
@@ -95,11 +93,11 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
                 ])
                 .allow_origin(Any),
         )
-        .route("/login", post(login_auth::login_handler))
-        .layer(middleware::from_fn_with_state(shared_state.clone(), login_auth::auth_layer))
+        .route("/login", post(perpetual::login_auth::login_handler))
+        .layer(middleware::from_fn_with_state(shared_state.clone(), perpetual::login_auth::auth_layer))
         .nest("/api", api::api(shared_state.clone()).await)
-        .route("/health", any(health::health_handler))
-        .route("/unlock", put(unlock::unlock_handler))
+        .route("/health", any(perpetual::health::health_handler))
+        .route("/unlock", put(perpetual::unlock::unlock_handler))
         .fallback(fallback::fallback_handler)
         .layer(from_fn(print_request_response::print_request_response))
         .with_state(shared_state)

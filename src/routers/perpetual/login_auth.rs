@@ -40,7 +40,7 @@ pub(crate) async fn login_handler(
     Ok(Json(result))
 }
 
-pub(super) async fn auth_layer(
+pub(crate) async fn auth_layer(
     State(shared_state): State<AppState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     request: Request,
