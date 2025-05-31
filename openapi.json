@@ -7,7 +7,7 @@
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
     },
-    "version": "1.0.15"
+    "version": "1.0.16"
   },
   "paths": {
     "/api/v1/admin/unlock": {
