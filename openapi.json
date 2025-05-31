@@ -7,7 +7,7 @@
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
     },
-    "version": "1.0.16"
+    "version": "1.0.17"
   },
   "servers": [
     {
@@ -17,6 +17,10 @@
     {
       "url": "http://127.0.0.1:8088",
       "description": "Local server"
+    },
+    {
+      "url": "https://10.8.33.192:8088",
+      "description": "Local VPN server"
     }
   ],
   "paths": {

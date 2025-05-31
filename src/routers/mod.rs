@@ -65,7 +65,7 @@ impl Modify for SecurityAddon {
         (name = "Health", description = "Health related endpoints."),
         (name = "Login", description = "Login related endpoints."),
         (name = "Admin", description = "Admin related endpoints."),
-        (name = "Key-Value", description = "Key-Value related endpoints.")
+        (name = "Key-Value", description = "Key-Value related endpoints."),
     ),
     info(
         description = "CryptPass API.",
@@ -73,8 +73,9 @@ impl Modify for SecurityAddon {
     ),
     servers(
         (url = "https://cryptpass.blr-home.arpanrec.com:8088", description = "Production server"),
-        (url = "http://127.0.0.1:8088", description = "Local server")
-    )
+        (url = "http://127.0.0.1:8088", description = "Local server"),
+        (url = "https://10.8.33.192:8088", description = "Local VPN server"),
+    ),
 )]
 pub(crate) struct ApiDoc;
 
