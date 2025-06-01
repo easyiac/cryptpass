@@ -3,7 +3,7 @@ use crate::{
         CryptPassError::{self, InternalServerError},
         CryptPassErrorResponse,
     },
-    routers::api::v1::admin_router::UnlockRequestBody,
+    routers::api::v1::users::UnlockRequestBody,
     services::InternalEncryptionKeySettings,
 };
 use axum::{extract::State, http::StatusCode, Json};

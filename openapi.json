@@ -20,147 +20,6 @@
     }
   ],
   "paths": {
-    "/api/v1/admin/user/{username}": {
-      "get": {
-        "tags": [
-          "Admin"
-        ],
-        "operationId": "get_user",
-        "parameters": [
-          {
-            "name": "username",
-            "in": "path",
-            "description": "Username of the user to get",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserModel"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CryptPassErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "User not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CryptPassErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CryptPassErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "cryptpass_auth_info": []
-          }
-        ]
-      },
-      "put": {
-        "tags": [
-          "Admin"
-        ],
-        "operationId": "create_update_user",
-        "parameters": [
-          {
-            "name": "username",
-            "in": "path",
-            "description": "Username of the user to update",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "description": "User to update",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserModel"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "User",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserModel"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CryptPassErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "User not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CryptPassErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CryptPassErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "cryptpass_auth_info": []
-          }
-        ]
-      }
-    },
     "/api/v1/keyvalue/data/{key}": {
       "get": {
         "tags": [
@@ -555,6 +414,147 @@
           },
           "404": {
             "description": "Key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cryptpass_auth_info": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/user/{username}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "get_user",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "description": "Username of the user to get",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cryptpass_auth_info": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "create_update_user",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "description": "Username of the user to update",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "User to update",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "User",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CryptPassErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
             "content": {
               "application/json": {
                 "schema": {

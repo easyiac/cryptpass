@@ -36,8 +36,8 @@ pub(crate) struct UnlockRequestBody {
 
 #[utoipa::path(
     get,
-    path = "/api/v1/admin/user/{username}",
-    tag = "Admin",
+    path = "/api/v1/users/user/{username}",
+    tag = "Users",
     params(
         ("username" = String, Path, description = "Username of the user to get")
     ),
@@ -69,8 +69,8 @@ async fn get_user(
 
 #[utoipa::path(
     put,
-    path = "/api/v1/admin/user/{username}",
-    tag = "Admin",
+    path = "/api/v1/users/user/{username}",
+    tag = "Users",
     params(
         ("username" = String, Path, description = "Username of the user to update")
     ),
