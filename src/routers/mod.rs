@@ -1,4 +1,4 @@
-pub(crate) mod api;
+mod api;
 mod fallback;
 mod perpetual;
 mod print_request_response;
