@@ -16,6 +16,7 @@ use axum::{
 use axum_server::tls_rustls::RustlsConfig;
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
+use tower_http::trace::TraceLayer;
 use tracing::info;
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
@@ -93,14 +94,16 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
                 ])
                 .allow_origin(Any),
         )
+        // .layer(CorsLayer::permissive())
         .route("/login", post(perpetual::login_auth::login_handler))
         .layer(middleware::from_fn_with_state(shared_state.clone(), perpetual::login_auth::auth_layer))
         .nest("/api", api::api(shared_state.clone()).await)
         .route("/health", any(perpetual::health::health_handler))
         .route("/unlock", put(perpetual::unlock::unlock_handler))
-        .fallback(fallback::fallback_handler)
         .layer(from_fn(print_request_response::print_request_response))
         .with_state(shared_state)
+        .layer(TraceLayer::new_for_http())
+        .fallback(fallback::fallback_handler)
         .split_for_parts();
     let router = router
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api.clone()))
