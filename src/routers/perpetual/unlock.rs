@@ -34,7 +34,7 @@ pub(crate) async fn unlock_handler(
     let set_key = conn
         .interact(move |conn| crate::init::init_unlock(master_key, conn))
         .await
-        .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
+        .map_err(|ex| InternalServerError(format!("Error interacting with database: {}", ex)))??;
 
     Ok((StatusCode::OK, Json(set_key)))
 }

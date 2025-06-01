@@ -1,0 +1,613 @@
+openapi: 3.1.0
+info:
+  title: cryptpass
+  description: CryptPass API.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  version: 1.0.19
+servers:
+- url: http://127.0.0.1:8088
+  description: Local server
+- url: https://10.8.33.192:8088
+  description: Local VPN server
+paths:
+  /api/v1/keyvalue/data/{key}:
+    get:
+      tags:
+      - Key-Value
+      description: Read a key
+      operationId: get_data
+      parameters:
+      - name: key
+        in: path
+        description: Key to read
+        required: true
+        schema:
+          type: string
+      - name: version
+        in: query
+        required: false
+        schema:
+          type:
+          - integer
+          - 'null'
+          format: int32
+      responses:
+        '200':
+          description: Value found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyValueData'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '404':
+          description: Key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+      security:
+      - cryptpass_auth_info: []
+    put:
+      tags:
+      - Key-Value
+      description: Update a key
+      operationId: update_data
+      parameters:
+      - name: key
+        in: path
+        description: Key to write
+        required: true
+        schema:
+          type: string
+      - name: version
+        in: query
+        required: false
+        schema:
+          type:
+          - integer
+          - 'null'
+          format: int32
+      requestBody:
+        description: Json secret
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeyValueData'
+        required: true
+      responses:
+        '201':
+          description: Value written
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '404':
+          description: Key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+      security:
+      - cryptpass_auth_info: []
+    delete:
+      tags:
+      - Key-Value
+      description: Delete a key
+      operationId: delete_data
+      parameters:
+      - name: key
+        in: path
+        description: Key to delete
+        required: true
+        schema:
+          type: string
+      - name: version
+        in: query
+        required: false
+        schema:
+          type:
+          - integer
+          - 'null'
+          format: int32
+      responses:
+        '204':
+          description: Key does not exist anymore
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+      security:
+      - cryptpass_auth_info: []
+  /api/v1/keyvalue/details/{key}:
+    get:
+      tags:
+      - Key-Value
+      description: Get key metadata
+      operationId: details
+      parameters:
+      - name: key
+        in: path
+        description: Key to read
+        required: true
+        schema:
+          type: string
+      - name: version
+        in: query
+        required: false
+        schema:
+          type:
+          - integer
+          - 'null'
+          format: int32
+      responses:
+        '200':
+          description: Key MetaData
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyValue'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '404':
+          description: Key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+      security:
+      - cryptpass_auth_info: []
+  /api/v1/keyvalue/list:
+    get:
+      tags:
+      - Key-Value
+      description: List all the keys
+      operationId: list_all_keys
+      responses:
+        '200':
+          description: List of keys
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyValueList'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '404':
+          description: Key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+      security:
+      - cryptpass_auth_info: []
+  /api/v1/keyvalue/list/{key}:
+    get:
+      tags:
+      - Key-Value
+      description: List nested keys
+      operationId: list_selective_keys
+      parameters:
+      - name: key
+        in: path
+        description: Key to read
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: List nested of keys
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyValueList'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '404':
+          description: Key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+      security:
+      - cryptpass_auth_info: []
+  /api/v1/users/user/{username}:
+    get:
+      tags:
+      - Users
+      operationId: get_user
+      parameters:
+      - name: username
+        in: path
+        description: Username of the user to get
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Users'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+      security:
+      - cryptpass_auth_info: []
+    put:
+      tags:
+      - Users
+      operationId: create_update_user
+      parameters:
+      - name: username
+        in: path
+        description: Username of the user to update
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: User to update
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Users'
+        required: true
+      responses:
+        '201':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Users'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+      security:
+      - cryptpass_auth_info: []
+  /health:
+    get:
+      tags:
+      - Perpetual
+      operationId: health_handler
+      responses:
+        '200':
+          description: Health Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+      security: []
+  /login:
+    post:
+      tags:
+      - Perpetual
+      description: Login endpoint for username and password authentication
+      operationId: login_handler
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestBody'
+        required: true
+      responses:
+        '200':
+          description: Create login token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponseBody'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+      security: []
+  /unlock:
+    post:
+      tags:
+      - Perpetual
+      operationId: unlock_handler
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockRequestBody'
+        required: true
+      responses:
+        '200':
+          description: Internal encryption key details, Not the actual key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalEncryptionKeySettings'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorResponse'
+      security: []
+components:
+  schemas:
+    CryptPassErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        correlation_id:
+          type:
+          - string
+          - 'null'
+        error:
+          type: string
+    DataValue:
+      oneOf:
+      - type: object
+        required:
+        - Object
+        properties:
+          Object:
+            type: object
+            additionalProperties: {}
+            propertyNames:
+              type: string
+      - type: object
+        required:
+        - Array
+        properties:
+          Array:
+            type: array
+            items: {}
+    HealthResponse:
+      type: object
+      required:
+      - status
+      properties:
+        status:
+          type: string
+    InternalEncryptionKeySettings:
+      type: object
+      required:
+      - encrypted_key
+      - hash
+      - encryptor_hash
+      properties:
+        encrypted_key:
+          type: string
+        encryptor_hash:
+          type: string
+        hash:
+          type: string
+    KeyValue:
+      type: object
+      required:
+      - key
+      - encrypted_value
+      - version
+      - deleted
+      - last_updated_at
+      properties:
+        deleted:
+          type: boolean
+        encrypted_value:
+          type: string
+        key:
+          type: string
+        last_updated_at:
+          type: integer
+          format: int64
+        version:
+          type: integer
+          format: int32
+    KeyValueData:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/DataValue'
+    KeyValueList:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            type: string
+    LoginRequestBody:
+      type: object
+      properties:
+        password:
+          type:
+          - string
+          - 'null'
+        username:
+          type:
+          - string
+          - 'null'
+    LoginResponseBody:
+      type: object
+      properties:
+        token:
+          type:
+          - string
+          - 'null'
+        type:
+          type:
+          - string
+          - 'null'
+    Privilege:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          $ref: '#/components/schemas/PrivilegeType'
+    PrivilegeType:
+      type: string
+      enum:
+      - SUDO
+      - NO_SUDO
+    Role:
+      type: object
+      required:
+      - name
+      - privileges
+      properties:
+        name:
+          $ref: '#/components/schemas/RoleType'
+        privileges:
+          type: array
+          items:
+            $ref: '#/components/schemas/Privilege'
+    RoleType:
+      type: string
+      enum:
+      - ADMIN
+      - USER
+    UnlockRequestBody:
+      type: object
+      required:
+      - token
+      properties:
+        token:
+          type: string
+    Users:
+      type: object
+      required:
+      - password_last_changed
+      - roles
+      - last_login
+      - locked
+      - enabled
+      properties:
+        email:
+          type:
+          - string
+          - 'null'
+        enabled:
+          type: boolean
+        last_login:
+          type: integer
+          format: int64
+        locked:
+          type: boolean
+        password:
+          type:
+          - string
+          - 'null'
+        password_last_changed:
+          type: integer
+          format: int64
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+  securitySchemes:
+    cryptpass_auth_info:
+      type: apiKey
+      in: header
+      name: X-CRYPTPASS-KEY
+tags:
+- name: Perpetual
+  description: Core endpoints.
+- name: Key-Value
+  description: Key-Value related endpoints.
+- name: Users
+  description: User related endpoints.

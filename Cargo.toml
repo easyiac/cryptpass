@@ -1,6 +1,6 @@
 [package]
 name = "cryptpass"
-version = "1.0.18"
+version = "1.0.19"
 edition = "2021"
 rust-version = "1.86.0"
 description = "Manage seed data for my home lab."
@@ -23,7 +23,7 @@ base64 = "0.22.1"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "time"] }
 tracing-appender = "0.2.3"
-time = { version = "0.3", features = ["formatting", "macros"] }
+time = { version = "0.3.41", features = ["formatting", "macros"] }
 serde_json = "1.0.140"
 serde = { version = "1.0.219", features = ["derive"] }
 axum-server = { version = "0.7.2", features = [

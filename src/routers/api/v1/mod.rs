@@ -1,11 +1,11 @@
-pub(crate) mod users;
+use axum::Router;
+
 pub(crate) mod keyvalue;
+pub(crate) mod users;
 
-use utoipa_axum::router::OpenApiRouter;
-
-pub(super) async fn api(shared_state: crate::init::AppState) -> OpenApiRouter<crate::init::AppState> {
-    OpenApiRouter::new()
-        .nest("/admin", users::api().await)
+pub(super) async fn api(shared_state: crate::init::AppState) -> Router<crate::init::AppState> {
+    Router::new()
+        .nest("/users", users::api().await)
         .nest("/keyvalue", keyvalue::api().await)
         .with_state(shared_state)
         .fallback(crate::routers::fallback::fallback_handler)

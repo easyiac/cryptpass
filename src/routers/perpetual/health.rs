@@ -1,11 +1,11 @@
+use crate::error::{CryptPassError, CryptPassErrorResponse};
 use axum::Json;
 use serde::Serialize;
 use utoipa::ToSchema;
-use crate::error::{CryptPassError, CryptPassErrorResponse};
 
 #[derive(Serialize, ToSchema)]
-pub struct HealthResponse {
-    pub status: &'static str,
+pub(crate) struct HealthResponse {
+    pub(crate) status: &'static str,
 }
 
 #[utoipa::path(

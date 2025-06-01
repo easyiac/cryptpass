@@ -1,4 +1,3 @@
-mod auth;
 mod error;
 mod init;
 mod physical;
@@ -10,8 +9,8 @@ use std::{fs, path::Path};
 use utoipa::OpenApi;
 
 fn main() {
-    let path = "./openapi.json";
-    println!("Deleting old openapi.json at {}", path);
+    let path = "./openapi.yaml";
+    println!("Deleting old openapi.yaml at {}", path);
 
     if Path::new(path).exists() {
         if let Err(e) = fs::remove_file(path) {
@@ -25,6 +24,6 @@ fn main() {
 
     println!("Generating openapi.json at {}", path);
 
-    fs::write(path, routers::ApiDoc::openapi().to_pretty_json().expect("Unable to convert to pretty json"))
+    fs::write(path, routers::ApiDoc::openapi().to_yaml().expect("Unable to convert to pretty json"))
         .expect("Unable to write to file");
 }

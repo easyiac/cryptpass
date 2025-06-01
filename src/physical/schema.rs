@@ -1,6 +1,6 @@
 diesel::table! {
     #[sql_name = "app_settings_t"]
-    app_settings (settings) {
+    app_settings_table (settings) {
         #[sql_name = "settings_c"]
         settings -> Text,
         #[sql_name = "value_c"]
@@ -12,7 +12,7 @@ diesel::table! {
 
 diesel::table! {
     #[sql_name = "encryption_keys_t"]
-    encryption_keys (encryption_key_hash, encryptor_key_hash) {
+    encryption_keys_table (encryption_key_hash, encryptor_key_hash) {
         #[sql_name = "encrypted_encryption_key_c"]
         encrypted_encryption_key -> Text,
         #[sql_name = "encryption_key_hash_c"]
@@ -24,7 +24,7 @@ diesel::table! {
 
 diesel::table! {
     #[sql_name = "key_value_t"]
-    key_value (key, version) {
+    key_value_table (key, version) {
         #[sql_name = "key_c"]
         key -> Text,
         #[sql_name = "encrypted_value_c"]
@@ -40,7 +40,7 @@ diesel::table! {
 
 diesel::table! {
     #[sql_name = "users_t"]
-    users (username) {
+    users_table (username) {
         #[sql_name = "username_c"]
         username -> Text,
         #[sql_name = "email_c"]

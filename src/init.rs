@@ -1,23 +1,23 @@
 use crate::{
-    auth::roles::{Privilege, PrivilegeType, Role, RoleType},
     error::CryptPassError::{self, BadRequest, InternalServerError},
-    physical::models::UserModel,
-    services::{encryption::INTERNAL_ENCRYPTION_KEY, get_settings, set_settings, InternalEncryptionKeySettings},
+    physical::models::{Privilege, PrivilegeType, Role, RoleType, Users},
+    services::{self, encryption::INTERNAL_ENCRYPTION_KEY, get_settings, set_settings, InternalEncryptionKeySettings},
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use deadpool_diesel::sqlite::Pool;
 use diesel::SqliteConnection;
 use rand::{distr::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
-use std::sync::OnceLock;
 use std::{
     fs,
     path::Path,
+    sync::OnceLock,
     time::{SystemTime, UNIX_EPOCH},
 };
 use tracing::{debug, error, info, trace, warn};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
+
 pub(crate) static CRYPTPASS_CONFIG_INSTANCE: OnceLock<Configuration> = OnceLock::new();
 
 #[derive(Clone)]
@@ -57,7 +57,7 @@ fn default_data_dir() -> String {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct PhysicalConfig {
     #[serde(rename = "data-dir", default = "default_data_dir")]
-    pub data_dir: String,
+    pub(crate) data_dir: String,
 }
 
 fn default_physical_config() -> PhysicalConfig {
@@ -67,10 +67,10 @@ fn default_physical_config() -> PhysicalConfig {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct Physical {
     #[serde(rename = "master-encryption-key")]
-    pub master_encryption_key: Option<String>,
+    pub(crate) master_encryption_key: Option<String>,
 
     #[serde(default = "default_physical_config")]
-    pub config: PhysicalConfig,
+    pub(crate) config: PhysicalConfig,
 }
 
 fn default_port() -> i32 {
@@ -84,28 +84,28 @@ fn default_auth_header_key() -> String {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct ServerTls {
     #[serde(rename = "key-pem")]
-    pub ssl_key_pem: String,
+    pub(crate) ssl_key_pem: String,
 
     #[serde(rename = "cert-pem")]
-    pub ssl_cert_pem: String,
+    pub(crate) ssl_cert_pem: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct Server {
     #[serde(default = "default_port")]
-    pub port: i32,
+    pub(crate) port: i32,
 
     #[serde(rename = "root-password")]
-    pub root_password: Option<String>,
+    pub(crate) root_password: Option<String>,
 
     #[serde(rename = "auth-header-key", default = "default_auth_header_key")]
-    pub auth_header_key: String,
+    pub(crate) auth_header_key: String,
 
     #[serde(rename = "tls")]
-    pub tls: Option<ServerTls>,
+    pub(crate) tls: Option<ServerTls>,
 
     #[serde(default = "default_physical")]
-    pub physical: Physical,
+    pub(crate) physical: Physical,
 }
 
 fn default_physical() -> Physical {
@@ -125,7 +125,7 @@ fn default_server() -> Server {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct Configuration {
     #[serde(default = "default_server")]
-    pub server: Server,
+    pub(crate) server: Server,
 }
 
 pub(crate) fn load_configuration() -> Configuration {
@@ -298,7 +298,7 @@ pub(crate) fn init_unlock(
     info!("Setting internal encryption key, hash: {}", internal_enc_key_settings.hash);
     INTERNAL_ENCRYPTION_KEY
         .set({
-            crate::services::encryption::InternalEncryptionKey {
+            services::encryption::InternalEncryptionKey {
                 key: internal_encryption_key,
                 hash: internal_enc_key_settings.clone().hash,
             }
@@ -319,11 +319,10 @@ fn create_root_user(conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
     let mut roles = Vec::new();
     let current_epoch = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map_err(|_| InternalServerError("System time before UNIX EPOCH".to_string()))?
+        .map_err(|ex| InternalServerError(format!("Failed to get current epoch: {}", ex)))?
         .as_millis() as i64;
     roles.push(Role { name: RoleType::ADMIN, privileges: vec![Privilege { name: PrivilegeType::SUDO }] });
-    let root_user_option = crate::services::users::get_user("root", conn)
-        .map_err(|ex| InternalServerError(format!("Error getting root user: {}", ex)))?;
+    let root_user_option = services::users::get_user("root", conn)?;
 
     let mut root_user = match root_user_option {
         Some(user) => {
@@ -337,20 +336,20 @@ fn create_root_user(conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
             let mut api_token_jwt_secret = [0u8; 32];
             rng.fill(&mut api_token_jwt_secret);
             let api_token_jwt_secret_base64 = BASE64_STANDARD.encode(api_token_jwt_secret);
-            UserModel {
+            Users {
                 username: "root".to_string(),
                 email: None,
                 password_hash: None,
                 password_last_changed: 0i64,
                 last_login: 0i64,
                 locked: false,
-                roles: serde_json::to_string(&roles)
-                    .map_err(|ex| InternalServerError(format!("Failed to serialize roles: {}", ex)))?,
+                roles: roles.clone(),
                 enabled: true,
-                api_token_jwt_secret_b64_encrypted: crate::services::encryption::encrypt(
+                api_token_jwt_secret_b64_encrypted: services::encryption::encrypt(
                     api_token_jwt_secret_base64.as_ref(),
                     conn,
                 )?,
+                password: None,
             }
         }
     };
@@ -371,17 +370,16 @@ fn create_root_user(conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
 
     root_user.locked = false;
     root_user.enabled = true;
-    root_user.roles = serde_json::to_string(&roles)
-        .map_err(|ex| InternalServerError(format!("Failed to serialize roles: {}", ex)))?;
+    root_user.roles = roles;
     root_user.last_login = 0i64;
 
     if is_new_root_user {
         info!("Creating new root user");
-        crate::services::users::create_user(root_user, conn)?;
+        services::users::create_user(root_user, conn)?;
         info!("Root user created");
     } else {
         info!("Updating existing root user");
-        crate::services::users::update_user(root_user, conn)?;
+        services::users::update_user(root_user, conn)?;
         info!("Existing root user updated");
     }
 

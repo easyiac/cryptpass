@@ -1,7 +1,7 @@
 mod api;
 mod fallback;
 mod perpetual;
-mod print_request_response;
+mod printer;
 
 use crate::{
     error::CryptPassError::{self, RouterError},
@@ -9,14 +9,12 @@ use crate::{
     init::CRYPTPASS_CONFIG_INSTANCE,
 };
 use axum::{
-    http::Method,
-    middleware::{self, from_fn},
-    routing::{any, post, put},
+    middleware,
+    routing::{any, post},
 };
 use axum_server::tls_rustls::RustlsConfig;
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
-use tower_http::trace::TraceLayer;
 use tracing::info;
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
@@ -45,7 +43,7 @@ impl Modify for SecurityAddon {
 #[openapi(
     paths(
         crate::routers::perpetual::health::health_handler,
-        crate::routers::perpetual::login_auth::login_handler,
+        crate::routers::perpetual::auth::login::login_handler,
         crate::routers::perpetual::unlock::unlock_handler,
         crate::routers::api::v1::users::get_user,
         crate::routers::api::v1::users::create_update_user,
@@ -59,8 +57,8 @@ impl Modify for SecurityAddon {
     modifiers(&SecurityAddon),
     tags(
         (name = "Perpetual", description = "Core endpoints."),
-        (name = "Admin", description = "Admin related endpoints."),
         (name = "Key-Value", description = "Key-Value related endpoints."),
+        (name = "Users", description = "User related endpoints."),
     ),
     info(
         description = "CryptPass API.",
@@ -80,40 +78,23 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
     let addr: SocketAddr = socket_addr
         .parse()
         .map_err(|ex| RouterError(format!("Unable to parse address: {}, error: {}", socket_addr, ex)))?;
-    let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
-        .layer(
-            CorsLayer::new()
-                .allow_methods([
-                    Method::GET,
-                    Method::POST,
-                    Method::PUT,
-                    Method::DELETE,
-                    Method::HEAD,
-                    Method::CONNECT,
-                    Method::PATCH,
-                ])
-                .allow_origin(Any),
-        )
-        // .layer(CorsLayer::permissive())
-        .route("/login", post(perpetual::login_auth::login_handler))
-        .layer(middleware::from_fn_with_state(shared_state.clone(), perpetual::login_auth::auth_layer))
-        .nest("/api", api::api(shared_state.clone()).await)
-        .route("/health", any(perpetual::health::health_handler))
-        .route("/unlock", put(perpetual::unlock::unlock_handler))
-        .layer(from_fn(print_request_response::print_request_response))
-        .with_state(shared_state)
-        .layer(TraceLayer::new_for_http())
-        .fallback(fallback::fallback_handler)
-        .split_for_parts();
+
+    let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi()).split_for_parts();
     let router = router
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api.clone()))
         .merge(Redoc::with_url("/redoc", api.clone()))
-        // There is no need to create `RapiDoc::with_openapi` because the OpenApi is served
-        // via SwaggerUi instead we only make rapidoc to point to the existing doc.
         .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
-        // Alternative to above
-        // .merge(RapiDoc::with_openapi("/api-docs/openapi2.json", api).path("/rapidoc"))
-        .merge(Scalar::with_url("/scalar", api));
+        .merge(Scalar::with_url("/scalar", api))
+        .route("/login", post(perpetual::auth::login::login_handler))
+        .route("/health", any(perpetual::health::health_handler))
+        .route("/unlock", post(perpetual::unlock::unlock_handler))
+        .nest("/api", api::api(shared_state.clone()).await)
+        .layer(middleware::from_fn_with_state(shared_state.clone(), perpetual::auth::layer::auth_layer))
+        .with_state(shared_state)
+        .fallback(fallback::fallback_handler)
+        // .layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(axum::middleware::from_fn(printer::print_request_response))
+        .layer(CorsLayer::new().allow_headers(Any).allow_methods(Any).allow_origin(Any).expose_headers(Any));
 
     if let Some(server_tls) = server.clone().tls {
         let config = RustlsConfig::from_pem(server_tls.ssl_cert_pem.into_bytes(), server_tls.ssl_key_pem.into_bytes())

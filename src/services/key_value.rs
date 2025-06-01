@@ -1,6 +1,6 @@
 use crate::{
     error::CryptPassError::{self, BadRequest, InternalServerError, NotFound},
-    physical::{models::KeyValueModel, schema},
+    physical::{models::KeyValue, schema},
     services::encryption,
 };
 use diesel::{
@@ -10,10 +10,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{trace, warn};
 
 fn get_next_version(key: &str, conn: &mut SqliteConnection) -> i32 {
-    let current_max = schema::key_value::table
-        .select(schema::key_value::version)
-        .filter(schema::key_value::key.eq(key))
-        .order(schema::key_value::version.desc())
+    let current_max = schema::key_value_table::table
+        .select(schema::key_value_table::version)
+        .filter(schema::key_value_table::key.eq(key))
+        .order(schema::key_value_table::version.desc())
         .first::<i32>(conn)
         .unwrap_or(0);
     current_max + 1
@@ -21,10 +21,10 @@ fn get_next_version(key: &str, conn: &mut SqliteConnection) -> i32 {
 
 fn is_version_exists(key: &str, version: i32, conn: &mut SqliteConnection) -> bool {
     let key = key.to_string();
-    schema::key_value::table
-        .select(count(schema::key_value::version))
-        .filter(schema::key_value::key.eq(key))
-        .filter(schema::key_value::version.eq(version))
+    schema::key_value_table::table
+        .select(count(schema::key_value_table::version))
+        .filter(schema::key_value_table::key.eq(key))
+        .filter(schema::key_value_table::version.eq(version))
         .get_result(conn)
         .unwrap_or(0)
         > 0
@@ -48,17 +48,17 @@ pub(crate) fn write(
         _ => get_next_version(key, conn),
     };
     let encrypted_value = encryption::encrypt(&value, conn)?;
-    let new_key_value = KeyValueModel {
+    let new_key_value = KeyValue {
         key: key.to_string(),
         encrypted_value,
         deleted: false,
         version: next_version,
         last_updated_at: SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map_err(|_| InternalServerError("System time before UNIX EPOCH".to_string()))?
+            .map_err(|ex| InternalServerError(format!("Error getting current time: {}", ex)))?
             .as_millis() as i64,
     };
-    diesel::insert_into(schema::key_value::table)
+    diesel::insert_into(schema::key_value_table::table)
         .values(&new_key_value)
         .execute(conn)
         .map_err(|ex| InternalServerError(format!("Error inserting key value into db: {}", ex)))?;
@@ -67,11 +67,11 @@ pub(crate) fn write(
 
 fn get_latest_version(key: &str, conn: &mut SqliteConnection) -> i32 {
     let key = key.to_string();
-    schema::key_value::table
-        .select(schema::key_value::version)
-        .filter(schema::key_value::key.eq(key))
-        .filter(schema::key_value::deleted.eq(false))
-        .order(schema::key_value::version.desc())
+    schema::key_value_table::table
+        .select(schema::key_value_table::version)
+        .filter(schema::key_value_table::key.eq(key))
+        .filter(schema::key_value_table::deleted.eq(false))
+        .order(schema::key_value_table::version.desc())
         .first::<i32>(conn)
         .unwrap_or(0)
 }
@@ -80,7 +80,7 @@ pub(crate) fn get_details(
     key: &str,
     version_asked: Option<i32>,
     conn: &mut SqliteConnection,
-) -> Result<Option<KeyValueModel>, CryptPassError> {
+) -> Result<Option<KeyValue>, CryptPassError> {
     validate_keys(key, false, version_asked)?;
     let latest_version = match version_asked {
         Some(v) if v > 0 => v,
@@ -89,12 +89,12 @@ pub(crate) fn get_details(
     if latest_version == 0 {
         return Ok(None);
     }
-    let result = schema::key_value::dsl::key_value
-        .filter(schema::key_value::version.eq(latest_version))
-        .filter(schema::key_value::key.eq(key))
-        .filter(schema::key_value::deleted.eq(false))
+    let result = schema::key_value_table::dsl::key_value_table
+        .filter(schema::key_value_table::version.eq(latest_version))
+        .filter(schema::key_value_table::key.eq(key))
+        .filter(schema::key_value_table::deleted.eq(false))
         .limit(1)
-        .select(KeyValueModel::as_select())
+        .select(KeyValue::as_select())
         .load(conn)
         .map_err(|ex| InternalServerError(format!("Error reading key_value from db: {}", ex)))?;
     let key_value = if let Some(first) = result.first() {
@@ -128,17 +128,17 @@ pub(crate) fn mark_version_for_delete(
     validate_keys(key, false, version_asked)?;
 
     if let Some(v) = version_asked {
-        diesel::update(schema::key_value::table)
-            .filter(schema::key_value::key.eq(key))
-            .filter(schema::key_value::version.eq(v))
-            .set(schema::key_value::deleted.eq(true))
+        diesel::update(schema::key_value_table::table)
+            .filter(schema::key_value_table::key.eq(key))
+            .filter(schema::key_value_table::version.eq(v))
+            .set(schema::key_value_table::deleted.eq(true))
             .execute(conn)
             .map_err(|ex| InternalServerError(format!("Error deleting key {}, version {} from db: {}", key, v, ex)))?;
     } else {
-        diesel::update(schema::key_value::table)
-            .filter(schema::key_value::key.eq(key))
-            .filter(schema::key_value::deleted.eq(false))
-            .set(schema::key_value::deleted.eq(true))
+        diesel::update(schema::key_value_table::table)
+            .filter(schema::key_value_table::key.eq(key))
+            .filter(schema::key_value_table::deleted.eq(false))
+            .set(schema::key_value_table::deleted.eq(true))
             .execute(conn)
             .map_err(|ex| InternalServerError(format!("Error deleting all versions for key value from db: {}", ex)))?;
     }
@@ -152,10 +152,10 @@ pub(crate) fn list_all_keys(key: &str, conn: &mut SqliteConnection) -> Result<Ve
     if !find_key.is_empty() {
         find_key = format!("{}/", find_key);
     }
-    Ok(schema::key_value::dsl::key_value
-        .filter(schema::key_value::key.like(format!("{}%", find_key)))
-        .filter(schema::key_value::deleted.eq(false))
-        .select(schema::key_value::key)
+    Ok(schema::key_value_table::dsl::key_value_table
+        .filter(schema::key_value_table::key.like(format!("{}%", find_key)))
+        .filter(schema::key_value_table::deleted.eq(false))
+        .select(schema::key_value_table::key)
         .distinct()
         .load::<String>(conn)
         .unwrap_or_else(|ex| {

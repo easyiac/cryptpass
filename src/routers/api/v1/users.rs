@@ -1,18 +1,16 @@
 use crate::{
-    auth::roles::{Privilege, PrivilegeType, Role, RoleType},
     error::{
         CryptPassError::{self, BadRequest, InternalServerError, NotFound},
         CryptPassErrorResponse,
     },
-    physical::models::UserModel
-    ,
+    physical::models::{Privilege, PrivilegeType, Role, RoleType, Users},
     utils::hash,
 };
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     routing::{get, put},
-    Json,
+    Json, Router,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rand::Rng;
@@ -20,10 +18,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::{SystemTime, UNIX_EPOCH};
 use utoipa::ToSchema;
-use utoipa_axum::router::OpenApiRouter;
 
-pub(super) async fn api() -> OpenApiRouter<crate::init::AppState> {
-    OpenApiRouter::new()
+pub(super) async fn api() -> Router<crate::init::AppState> {
+    Router::new()
         .route("/user/{username}", put(create_update_user))
         .route("/user/{username}", get(get_user))
         .fallback(crate::routers::fallback::fallback_handler)
@@ -31,7 +28,7 @@ pub(super) async fn api() -> OpenApiRouter<crate::init::AppState> {
 
 #[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 pub(crate) struct UnlockRequestBody {
-    pub token: String,
+    pub(crate) token: String,
 }
 
 #[utoipa::path(
@@ -39,22 +36,22 @@ pub(crate) struct UnlockRequestBody {
     path = "/api/v1/users/user/{username}",
     tag = "Users",
     params(
-        ("username" = String, Path, description = "Username of the user to get")
+        ("username" = String, Path, description = "Username of the user to get"),
     ),
     responses(
-        (status = 200, description = "User", body = UserModel),
+        (status = 200, description = "User", body = Users),
         (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
         (status = 404, description = "User not found", body = CryptPassErrorResponse),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     security(
-        ("cryptpass_auth_info" = [])
-    )
+        ("cryptpass_auth_info" = []),
+    ),
 )]
 async fn get_user(
     Path(username): Path<String>,
     State(shared_state): State<crate::init::AppState>,
-) -> Result<(StatusCode, Json<UserModel>), CryptPassError> {
+) -> Result<(StatusCode, Json<Users>), CryptPassError> {
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
@@ -72,31 +69,31 @@ async fn get_user(
     path = "/api/v1/users/user/{username}",
     tag = "Users",
     params(
-        ("username" = String, Path, description = "Username of the user to update")
+        ("username" = String, Path, description = "Username of the user to update"),
     ),
     request_body(
         content_type = "application/json",
-        content = UserModel,
-        description = "User to update"
+        content = Users,
+        description = "User to update",
     ),
     responses(
-        (status = 200, description = "User", body = UserModel),
-        (status = 404, description = "User not found", body = CryptPassErrorResponse),
+        (status = 201, description = "User", body = Users),
         (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
+        (status = 404, description = "User not found", body = CryptPassErrorResponse),
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     security(
-        ("cryptpass_auth_info" = [])
-    )
+        ("cryptpass_auth_info" = []),
+    ),
 )]
 async fn create_update_user(
     Path(username): Path<String>,
     State(shared_state): State<crate::init::AppState>,
     body: Json<Value>,
-) -> Result<(StatusCode, Json<UserModel>), CryptPassError> {
+) -> Result<(StatusCode, Json<Users>), CryptPassError> {
     let current_epoch = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map_err(|_| InternalServerError("System time before UNIX EPOCH".to_string()))?
+        .map_err(|ex| InternalServerError(format!("Error getting current epoch: {}", ex)))?
         .as_millis() as i64;
     let pool = shared_state.pool;
     let conn =
@@ -125,17 +122,17 @@ async fn create_update_user(
                 .await
                 .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
             is_new_user = true;
-            UserModel {
+            Users {
                 username: user_err,
                 email: None,
                 password_hash: None,
                 password_last_changed: 0i64,
-                roles: serde_json::to_string(&default_roles)
-                    .map_err(|_| InternalServerError("Failed to serialize roles for root user".to_string()))?,
+                roles: default_roles,
                 last_login: 0i64,
                 locked: false,
                 enabled: true,
                 api_token_jwt_secret_b64_encrypted,
+                password: None,
             }
         }
     };
@@ -163,7 +160,8 @@ async fn create_update_user(
     };
 
     if let Some(roles) = body.get("roles") {
-        user.roles = roles.to_string();
+        user.roles = serde_json::from_value(roles.clone())
+            .map_err(|e| BadRequest(format!("'roles' must be a valid JSON array: {}", e)))?;
     };
     let user_res = user.clone();
     if is_new_user {

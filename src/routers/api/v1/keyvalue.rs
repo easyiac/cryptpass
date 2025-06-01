@@ -1,8 +1,8 @@
 use crate::{
     error::CryptPassErrorResponse,
     init::AppState,
-    physical::models::KeyValueModel,
-    routers::CryptPassError::{self, InternalServerError, NotFound},
+    physical::models::KeyValue,
+    routers::CryptPassError::{self, BadRequest, InternalServerError, NotFound},
     services,
 };
 use axum::{
@@ -10,21 +10,31 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
     routing::{delete, get, put},
-    Json,
+    Json, Router,
 };
-use serde::Deserialize;
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 use tracing::info;
-use utoipa::IntoParams;
-use utoipa_axum::router::OpenApiRouter;
+use utoipa::{IntoParams, ToSchema};
 
-#[derive(Deserialize, IntoParams)]
-pub struct VersionQuery {
+#[derive(Deserialize, IntoParams, ToSchema, Debug, Clone)]
+pub(crate) struct VersionQuery {
     version: Option<i32>,
 }
 
-pub(crate) async fn api() -> OpenApiRouter<AppState> {
-    OpenApiRouter::new()
+#[derive(Deserialize, Serialize, ToSchema, Debug, Clone)]
+pub(crate) enum DataValue {
+    Object(Map<String, Value>),
+    Array(Vec<Value>),
+}
+
+#[derive(Deserialize, Serialize, ToSchema, Debug, Clone)]
+pub(crate) struct KeyValueData {
+    data: DataValue,
+}
+
+pub(crate) async fn api() -> Router<AppState> {
+    Router::new()
         .route("/details/{*key}", get(details))
         .route("/data/{*key}", get(get_data))
         .route("/data/{*key}", put(update_data))
@@ -39,25 +49,26 @@ pub(crate) async fn api() -> OpenApiRouter<AppState> {
     get,
     path = "/api/v1/keyvalue/data/{key}",
     tag = "Key-Value",
+    description = "Read a key",
     params(
         ("key" = String, Path, description = "Key to read"),
-        VersionQuery
+        VersionQuery,
     ),
     responses(
-        (status = 200, description = "Value found", body = Value),
+        (status = 200, description = "Value found", body = KeyValueData),
         (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
         (status = 404, description = "Key not found", body = CryptPassErrorResponse),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     security(
-        ("cryptpass_auth_info" = [])
-    )
+        ("cryptpass_auth_info" = []),
+    ),
 )]
 pub(crate) async fn get_data(
     Path(key): Path<String>,
     Query(version_query): Query<VersionQuery>,
     State(shared_state): State<AppState>,
-) -> Result<impl IntoResponse, CryptPassError> {
+) -> Result<(StatusCode, Json<KeyValueData>), CryptPassError> {
     info!("Key Value data api request for key: {}", key);
     let pool = shared_state.pool;
     let conn =
@@ -66,11 +77,15 @@ pub(crate) async fn get_data(
     let value = conn
         .interact(move |conn| services::key_value::read(key.as_str(), version, conn))
         .await
-        .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
+        .map_err(|ex| InternalServerError(format!("Error interacting with database: {}", ex)))??;
     if let Some(value) = value {
-        let json_body = serde_json::from_str::<Value>(value.clone().as_str())
-            .map_err(|e| InternalServerError(format!("Error parsing JSON: {}", e)))?;
-        Ok((StatusCode::OK, Json(json_body)))
+        Ok((
+            StatusCode::OK,
+            Json(KeyValueData {
+                data: serde_json::from_str::<DataValue>(value.clone().as_str())
+                    .map_err(|ex| InternalServerError(format!("Error parsing JSON: {}", ex)))?,
+            }),
+        ))
     } else {
         Err(NotFound("Key not found".to_string()))
     }
@@ -84,6 +99,7 @@ pub(crate) async fn get_data(
         ("key" = String, Path, description = "Key to write"),
         VersionQuery,
     ),
+    description = "Update a key",
     responses(
         (status = 201, description = "Value written"),
         (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
@@ -92,24 +108,25 @@ pub(crate) async fn get_data(
     ),
     request_body(
         content_type = "application/json",
-        content = String,
-        description = "User to update"
+        content = KeyValueData,
+        description = "Json secret",
     ),
     security(
-        ("cryptpass_auth_info" = [])
-    )
+        ("cryptpass_auth_info" = []),
+    ),
 )]
 pub(crate) async fn update_data(
     Path(key): Path<String>,
     Query(version_query): Query<VersionQuery>,
     State(shared_state): State<AppState>,
-    body: Json<Value>,
+    body: Json<KeyValueData>,
 ) -> Result<impl IntoResponse, CryptPassError> {
     info!("Key Value data api request for key: {}", key);
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
-    let body_str = body.to_string();
+    let body_str =
+        serde_json::to_string(&body.data.clone()).map_err(|ex| BadRequest(format!("Unable to parse data: {}", ex)))?;
 
     let version = version_query.version;
     let new_version = conn
@@ -123,19 +140,19 @@ pub(crate) async fn update_data(
     delete,
     path = "/api/v1/keyvalue/data/{key}",
     tag = "Key-Value",
+    description = "Delete a key",
     params(
         ("key" = String, Path, description = "Key to delete"),
         VersionQuery,
     ),
     responses(
-        (status = 204, description = "Value deleted"),
+        (status = 204, description = "Key does not exist anymore"),
         (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
-        (status = 404, description = "Key not found", body = CryptPassErrorResponse),
         (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     security(
-        ("cryptpass_auth_info" = [])
-    )
+        ("cryptpass_auth_info" = []),
+    ),
 )]
 pub(crate) async fn delete_data(
     Path(key): Path<String>,
@@ -156,19 +173,20 @@ pub(crate) async fn delete_data(
     get,
     path = "/api/v1/keyvalue/details/{key}",
     tag = "Key-Value",
+    description = "Get key metadata",
     params(
         ("key" = String, Path, description = "Key to read"),
-        VersionQuery
+        VersionQuery,
     ),
     responses(
-        (status = 200, description = "Key MetaData", body = KeyValueModel),
+        (status = 200, description = "Key MetaData", body = KeyValue),
         (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
         (status = 404, description = "Key not found", body = CryptPassErrorResponse),
         (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     security(
-        ("cryptpass_auth_info" = [])
-    )
+        ("cryptpass_auth_info" = []),
+    ),
 )]
 async fn details(
     Path(key): Path<String>,
@@ -191,27 +209,33 @@ async fn details(
     }
 }
 
+#[derive(Serialize, ToSchema, Debug, Clone, Deserialize)]
+pub(crate) struct KeyValueList {
+    data: Vec<String>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/keyvalue/list/{key}",
     tag = "Key-Value",
+    description = "List nested keys",
     params(
         ("key" = String, Path, description = "Key to read"),
     ),
     responses(
-        (status = 200, description = "List of keys", body = Vec<String>),
+        (status = 200, description = "List nested of keys", body = KeyValueList),
         (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
         (status = 404, description = "Key not found", body = CryptPassErrorResponse),
         (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     security(
-        ("cryptpass_auth_info" = [])
-    )
+        ("cryptpass_auth_info" = []),
+    ),
 )]
 async fn list_selective_keys(
     Path(key): Path<String>,
     State(shared_state): State<AppState>,
-) -> Result<(StatusCode, Json<Vec<String>>), CryptPassError> {
+) -> Result<(StatusCode, Json<KeyValueList>), CryptPassError> {
     list_keys(key, shared_state).await
 }
 
@@ -219,22 +243,23 @@ async fn list_selective_keys(
     get,
     path = "/api/v1/keyvalue/list",
     tag = "Key-Value",
+    description = "List all the keys",
     responses(
-        (status = 200, description = "List of keys", body = Vec<String>),
+        (status = 200, description = "List of keys", body = KeyValueList),
         (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
         (status = 404, description = "Key not found", body = CryptPassErrorResponse),
     ),
     security(
-        ("cryptpass_auth_info" = [])
-    )
+        ("cryptpass_auth_info" = []),
+    ),
 )]
 async fn list_all_keys(
     State(shared_state): State<AppState>,
-) -> Result<(StatusCode, Json<Vec<String>>), CryptPassError> {
+) -> Result<(StatusCode, Json<KeyValueList>), CryptPassError> {
     list_keys("".to_string(), shared_state).await
 }
 
-async fn list_keys(key: String, shared_state: AppState) -> Result<(StatusCode, Json<Vec<String>>), CryptPassError> {
+async fn list_keys(key: String, shared_state: AppState) -> Result<(StatusCode, Json<KeyValueList>), CryptPassError> {
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
@@ -243,5 +268,5 @@ async fn list_keys(key: String, shared_state: AppState) -> Result<(StatusCode, J
         .interact(move |conn| services::key_value::list_all_keys(key.as_str(), conn))
         .await
         .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
-    Ok((StatusCode::OK, Json(keys)))
+    Ok((StatusCode::OK, Json(KeyValueList { data: keys })))
 }

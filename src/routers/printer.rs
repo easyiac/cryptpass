@@ -1,4 +1,3 @@
-use http_body_util::BodyExt;
 use axum::{
     body::{Body, Bytes},
     extract::{ConnectInfo, Request},
@@ -6,6 +5,7 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use http_body_util::BodyExt;
 use std::net::SocketAddr;
 use tracing::trace;
 
