@@ -50,7 +50,7 @@ pub(crate) async fn api() -> OpenApiRouter<AppState> {
         (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
     ),
     security(
-        ("api_key" = [])
+        ("cryptpass_auth_info" = [])
     )
 )]
 pub(crate) async fn get_data(
@@ -96,7 +96,7 @@ pub(crate) async fn get_data(
         description = "User to update"
     ),
     security(
-        ("api_key" = [])
+        ("cryptpass_auth_info" = [])
     )
 )]
 pub(crate) async fn update_data(
@@ -134,7 +134,7 @@ pub(crate) async fn update_data(
         (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     security(
-        ("api_key" = [])
+        ("cryptpass_auth_info" = [])
     )
 )]
 pub(crate) async fn delete_data(
@@ -167,7 +167,7 @@ pub(crate) async fn delete_data(
         (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     security(
-        ("api_key" = [])
+        ("cryptpass_auth_info" = [])
     )
 )]
 async fn details(
@@ -205,7 +205,7 @@ async fn details(
         (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
     security(
-        ("api_key" = [])
+        ("cryptpass_auth_info" = [])
     )
 )]
 async fn list_selective_keys(
@@ -225,7 +225,7 @@ async fn list_selective_keys(
         (status = 404, description = "Key not found", body = CryptPassErrorResponse),
     ),
     security(
-        ("api_key" = [])
+        ("cryptpass_auth_info" = [])
     )
 )]
 async fn list_all_keys(

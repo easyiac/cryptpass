@@ -48,7 +48,7 @@ pub(crate) struct UnlockRequestBody {
         (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
     ),
     security(
-        ("api_key" = [])
+        ("cryptpass_auth_info" = [])
     )
 )]
 async fn get_user(
@@ -86,7 +86,7 @@ async fn get_user(
         (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
     ),
     security(
-        ("api_key" = [])
+        ("cryptpass_auth_info" = [])
     )
 )]
 async fn create_update_user(

@@ -81,7 +81,7 @@
         },
         "security": [
           {
-            "api_key": []
+            "cryptpass_auth_info": []
           }
         ]
       },
@@ -156,7 +156,7 @@
         },
         "security": [
           {
-            "api_key": []
+            "cryptpass_auth_info": []
           }
         ]
       }
@@ -232,7 +232,7 @@
         },
         "security": [
           {
-            "api_key": []
+            "cryptpass_auth_info": []
           }
         ]
       },
@@ -312,7 +312,7 @@
         },
         "security": [
           {
-            "api_key": []
+            "cryptpass_auth_info": []
           }
         ]
       },
@@ -381,7 +381,7 @@
         },
         "security": [
           {
-            "api_key": []
+            "cryptpass_auth_info": []
           }
         ]
       }
@@ -459,7 +459,7 @@
         },
         "security": [
           {
-            "api_key": []
+            "cryptpass_auth_info": []
           }
         ]
       }
@@ -507,7 +507,7 @@
         },
         "security": [
           {
-            "api_key": []
+            "cryptpass_auth_info": []
           }
         ]
       }
@@ -576,7 +576,7 @@
         },
         "security": [
           {
-            "api_key": []
+            "cryptpass_auth_info": []
           }
         ]
       }
@@ -861,7 +861,7 @@
       }
     },
     "securitySchemes": {
-      "api_key": {
+      "cryptpass_auth_info": {
         "type": "apiKey",
         "in": "header",
         "name": "X-CRYPTPASS-KEY"
