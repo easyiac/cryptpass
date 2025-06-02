@@ -1,27 +1,46 @@
-# Cryptpass
+# CryptPass
 
-Cryptpass is a basic REST API service for securely managing configuration and secrets. It provides a simple CRUD
-interface and is designed to be robust for both small-scale personal deployments and more controlled lab environments.
+CryptPass is a secure key-value store with encryption capabilities, designed for managing sensitive data in a home lab environment. It provides a RESTful API for storing, retrieving, and managing encrypted key-value pairs with user authentication and authorization.
 
 ## Features
 
-- **Secrets Management:** Store, retrieve, update, and delete sensitive configuration and secret data via a secure API.
-- **Strong Authentication:** Configurable root password and API key header, with optional TLS support.
-- **Encrypted Storage:** Uses `master-key` encryption for secrets at rest.
-- **Health Checks:** Simple health endpoint for monitoring.
-- **Easy Configuration:** Supports JSON-based and file-based configuration schemes.
-- **Extensible Deployment:** Ansible-based deployment scripts for effortless setup on target hosts.
-- **Logging:** Customizable log levels and output directories.
+- **Secure Key-Value Storage**: Store and retrieve encrypted data with versioning support
+- **Two-Layer Encryption**: Uses a master encryption key and individual keys for each value
+- **User Management**: Built-in user system with roles and privileges
+- **RESTful API**: Well-documented API with OpenAPI specification
+- **TLS Support**: Optional TLS encryption for secure communication
+- **SQLite Backend**: Uses SQLite for data persistence
+- **Swagger UI**: Interactive API documentation
 
-## Getting Started
+## Installation
 
-### Configuration
+### Using Docker
 
-The service reads configuration from the environment or a JSON file (default path: `/etc/cryptpass/config.json`). You
-can provide the entire config as a JSON string or reference a config file path using the `CRYPTPASS_CONFIG` environment
-variable.
+```bash
+docker pull arpanrecme/cryptpass:latest
+docker run -p 8088:8088 -v /path/to/data:/var/lib/cryptpass -v /path/to/config.json:/etc/cryptpass/config.json arpanrecme/cryptpass:latest
+```
 
-#### Example Config (`/etc/cryptpass/config.json`)
+### From Source
+
+Prerequisites:
+
+- Rust 1.86.0 or later
+- SQLite development libraries
+
+```bash
+# Build the project
+cargo build --release
+
+# Run the server
+./target/release/cryptpass
+```
+
+## Configuration
+
+CryptPass can be configured using a JSON configuration file. By default, it looks for a configuration file at `/etc/cryptpass/config.json`, but you can specify a different location using the `CRYPTPASS_CONFIG` environment variable.
+
+Example configuration:
 
 ```json
 {
@@ -43,86 +62,133 @@ variable.
 }
 ```
 
-#### Environment Variables
+### Configuration Options
 
-- `CRYPTPASS_CONFIG`: Path to a configuration file or raw JSON. **Default:** `/etc/cryptpass/config.json`
-- `CRYPTPASS_LOG_LEVEL`: Log level (`INFO`, `DEBUG`, etc.). **Default:** `INFO`. [Reference](https://logging.apache.org/log4j/2.x/manual/customloglevels.html)
-- `CRYPTPASS_LOG_DIR`: Log directory. **Default:** `/var/log/cryptpass`
+| Option                                  | Description                      | Default                        |
+|-----------------------------------------|----------------------------------|--------------------------------|
+| `server.port`                           | Port to listen on                | 8088                           |
+| `server.root_password`                  | Password for the root user       | Random (logged on first start) |
+| `server.auth_header_key`                | HTTP header for authentication   | X-CRYPTPASS-KEY                |
+| `server.tls`                            | TLS configuration (optional)     | None                           |
+| `server.tls.key-pem`                    | Path to PEM key file             | None (use HTTP)                |
+| `server.tls.cert-pem`                   | Path to PEM certificate file     | None (use HTTP)                |
+| `server.physical.master-encryption-key` | Master encryption key (optional) | None (use /unlock endpoint)    |
+| `server.physical.config.data-dir`       | Directory for data storage       | /var/lib/cryptpass             |
 
-For first-time setups:
+### Environment Variables
 
-- If the root password is unset, one will be generated on startup and printed to logs at INFO level.
-- If TLS fields are omitted, the service will run **HTTP** (not recommended for production).
+| Variable              | Description                                 | Default                    |
+|-----------------------|---------------------------------------------|----------------------------|
+| `CRYPTPASS_CONFIG`    | Path to configuration file or JSON string   | /etc/cryptpass/config.json |
+| `CRYPTPASS_LOG_LEVEL` | Log level (TRACE, DEBUG, INFO, WARN, ERROR) | INFO                       |
+| `CRYPTPASS_LOG_DIR`   | Directory for log files                     | /var/log/cryptpass         |
 
-## API Endpoints
+## Usage
 
-- `POST /api/v1/admin/...` — Admin operations (authentication, unlocking, etc.).
-- `POST /api/v1/keyvalue/...` — CRUD for secret key-value pairs.
-- `GET /health` — Health check endpoint, returns `OK` if running.
+### API Endpoints
 
-*See OpenAPI/Swagger documentation for full REST interface details and payload formats.*
+CryptPass provides the following API endpoints:
 
-## Deployment
+#### Key-Value Operations
 
-Deployment is automated using **Ansible**.
+- `GET /api/v1/keyvalue/data/{key}` - Read a key
+- `PUT /api/v1/keyvalue/data/{key}` - Update a key
+- `DELETE /api/v1/keyvalue/data/{key}` - Delete a key
+- `GET /api/v1/keyvalue/details/{key}` - Get key metadata
+- `GET /api/v1/keyvalue/list` - List all keys
+- `GET /api/v1/keyvalue/list/{key}` - List nested keys
 
-### Steps
+#### User Management
 
-1. Edit `ansible/inventory.yaml` to set required variables (see template below):
+- `GET /api/v1/users/user/{username}` - Get user details
+- `PUT /api/v1/users/user/{username}` - Create or update a user
 
-    ```yaml
-    all:
-        vars:
-            cryptpass_config: "<Cryptpass configuration in yaml/json format>"
-    ```
+#### Authentication
 
-2. The Ansible Vault password for secure var files can be retrieved from your organization's Bitwarden or with
-   `ansible/vault_pass.sh`.
+- `POST /login` - Login with username and password
+- `POST /unlock` - Unlock with master key
 
-3. Deploy with:
+#### Health Check
 
-```textmate
-./ansible/deploy.sh
+- `GET /health` - Check server health
+
+### Example Usage
+
+#### Login
+
+```bash
+curl -X POST http://localhost:8088/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "root", "password": "your-password"}'
 ```
 
----
+Response:
 
-## Development Setup
+```json
+{
+    "token": "your-jwt-token",
+    "type": "Bearer"
+}
+```
 
-1. Clone the repository and install Rust (if not installed):
+#### Store a Key-Value Pair
 
-    ```textmate
-    rustup install stable
-    ```
+```bash
+curl -X PUT http://localhost:8088/api/v1/keyvalue/data/my-secret \
+  -H "Content-Type: application/json" \
+  -H "X-CRYPTPASS-KEY: your-jwt-token" \
+  -d '{"data": {"Object": {"username": "admin", "password": "secret123"}}}'
+```
 
-2. [Optional] For Ansible vault diff support, add to `~/.gitattributes`:
+#### Retrieve a Key-Value Pair
 
-    ```.gitignore (gitignore)
-    ansible/inventory.yaml diff=ansible-vault merge=binary
-    ```
+```bash
+curl -X GET http://localhost:8088/api/v1/keyvalue/data/my-secret \
+  -H "X-CRYPTPASS-KEY: your-jwt-token"
+```
 
-   Then, configure git diff:
+Response:
 
-    ```textmate
-    git config diff.ansible-vault.textconv "ansible-vault view"
-    ```
+```json
+{
+    "data": {
+        "Object": {
+            "username": "admin",
+            "password": "secret123"
+        }
+    }
+}
+```
 
-3. Run the project locally (with a dev configuration):
+## Security Considerations
 
-    ```textmate
-    cargo run
-    ```
+- The master encryption key should be kept secure and not included in the configuration file in production
+- Use the `/unlock` endpoint to set the master encryption key at runtime
+- Always use TLS in production environments
+- Change the default root password after the first login
 
-## Roadmap
+## Development
 
-- **Backup:** Automated secret backups (planned after base feature stabilization).
-- **Additional Integrations:** Extending the API for broader use-cases.
-- **Factory & Safety Improvements:** Ensure robust data durability and safety protocols.
+### Generate OpenAPI Specification
+
+CryptPass includes a tool to generate the OpenAPI specification:
+
+```bash
+cargo run --bin gen-openapi
+```
+
+### Running Tests
+
+```bash
+cargo test
+```
+
+### Building for Production
+
+```bash
+cargo build --release
+```
 
 ## License
 
-See the [LICENSE](LICENSE) file for license information.
-
-## Contributing
-
-Pull requests and issues are welcome! Please open an issue for questions, feature requests, or bug reports.
+This project is licensed under the MIT License - see the LICENSE file for details.
