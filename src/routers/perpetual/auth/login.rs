@@ -1,10 +1,10 @@
 use crate::{
     error::{
         CryptPassError::{self, InternalServerError, Unauthorized},
-        CryptPassErrorResponse,
+        CryptPassErrorDetails,
     },
     init::AppState,
-    routers::perpetual::auth::{get_jwt_secret, JWTClaims, LoginRequestBody, LoginResponseBody, JWT_DURATION},
+    routers::perpetual::auth::{get_jwt_secret, JWTClaims, LoginRequest, LoginResponse, JWT_DURATION},
     services,
     utils::match_hash,
 };
@@ -20,16 +20,16 @@ use tracing::trace;
     tag = "Perpetual",
     description = "Login endpoint for username and password authentication",
     responses(
-        (status = 200, description = "Create login token", body = LoginResponseBody),
-        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
+        (status = 200, description = "Create login token", body = LoginResponse),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorDetails),
+        (status = 500, description = "Internal server error", body = CryptPassErrorDetails)
     ),
     security(),
 )]
 pub(crate) async fn login_handler(
     State(shared_state): State<AppState>,
-    body: Json<LoginRequestBody>,
-) -> Result<Json<LoginResponseBody>, CryptPassError> {
+    body: Json<LoginRequest>,
+) -> Result<Json<LoginResponse>, CryptPassError> {
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
@@ -42,9 +42,9 @@ pub(crate) async fn login_handler(
 }
 
 pub(crate) fn username_password_login(
-    login_request: &LoginRequestBody,
+    login_request: &LoginRequest,
     conn: &mut SqliteConnection,
-) -> Result<LoginResponseBody, CryptPassError> {
+) -> Result<LoginResponse, CryptPassError> {
     trace!("Login request: {:?}", login_request);
     let current_epoch = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -82,5 +82,5 @@ pub(crate) fn username_password_login(
         &EncodingKey::from_secret(get_jwt_secret().as_bytes()),
     )
     .map_err(|e| InternalServerError(format!("Error generating JWT token: {}", e)))?;
-    Ok(LoginResponseBody { token: Some(token), token_type: Some("Bearer".to_string()) })
+    Ok(LoginResponse { token: Some(token), token_type: Some("Bearer".to_string()) })
 }

@@ -1,7 +1,7 @@
 use crate::{
     error::{
         CryptPassError::{self, BadRequest, InternalServerError, NotFound},
-        CryptPassErrorResponse,
+        CryptPassErrorDetails,
     },
     physical::models::{Privilege, PrivilegeType, Role, RoleType, Users},
     utils::hash,
@@ -33,9 +33,9 @@ pub(super) async fn api() -> Router<crate::init::AppState> {
     ),
     responses(
         (status = 200, description = "User", body = Users),
-        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
-        (status = 404, description = "User not found", body = CryptPassErrorResponse),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorDetails),
+        (status = 404, description = "User not found", body = CryptPassErrorDetails),
+        (status = 500, description = "Internal server error", body = CryptPassErrorDetails),
     ),
     security(
         ("cryptpass_auth_info" = []),
@@ -71,9 +71,9 @@ async fn get_user(
     ),
     responses(
         (status = 201, description = "User", body = Users),
-        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
-        (status = 404, description = "User not found", body = CryptPassErrorResponse),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorDetails),
+        (status = 404, description = "User not found", body = CryptPassErrorDetails),
+        (status = 500, description = "Internal server error", body = CryptPassErrorDetails),
     ),
     security(
         ("cryptpass_auth_info" = []),

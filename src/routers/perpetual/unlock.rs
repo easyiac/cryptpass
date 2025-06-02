@@ -1,7 +1,7 @@
 use crate::{
     error::{
         CryptPassError::{self, InternalServerError},
-        CryptPassErrorResponse,
+        CryptPassErrorDetails,
     },
     init::InternalEncryptionKeyDetails,
 };
@@ -24,7 +24,7 @@ pub(crate) struct UnlockRequest {
             description = "Internal encryption key details, Not the actual key",
             body = InternalEncryptionKeyDetails,
         ),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
+        (status = 500, description = "Internal server error", body = CryptPassErrorDetails),
     ),
     security(),
 )]

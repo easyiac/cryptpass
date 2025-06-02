@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub(crate) struct CryptPassErrorResponse {
+pub(crate) struct CryptPassErrorDetails {
     pub(crate) error: String,
     pub(crate) correlation_id: Option<String>,
 }
@@ -43,12 +43,12 @@ impl IntoResponse for CryptPassError {
             CryptPassError::NotFound(e) => {
                 warn!("Not Found: {} - {}", random_uuid, e);
                 let error_body =
-                    serde_json::json!(CryptPassErrorResponse { error: e, correlation_id: Some(random_uuid) });
+                    serde_json::json!(CryptPassErrorDetails { error: e, correlation_id: Some(random_uuid) });
                 (StatusCode::NOT_FOUND, axum::Json(error_body)).into_response()
             }
             CryptPassError::InternalServerError(e) => {
                 warn!("Internal Server Error: {} - {}", random_uuid, e);
-                let error_body = serde_json::json!(CryptPassErrorResponse {
+                let error_body = serde_json::json!(CryptPassErrorDetails {
                     error: "Internal Server Error".to_string(),
                     correlation_id: Some(random_uuid)
                 });
@@ -57,13 +57,13 @@ impl IntoResponse for CryptPassError {
             CryptPassError::Unauthorized(e) => {
                 warn!("Unauthorized: {} - {}", random_uuid, e);
                 let error_body =
-                    serde_json::json!(CryptPassErrorResponse { error: e, correlation_id: Some(random_uuid) });
+                    serde_json::json!(CryptPassErrorDetails { error: e, correlation_id: Some(random_uuid) });
                 (StatusCode::UNAUTHORIZED, axum::Json(error_body)).into_response()
             }
             CryptPassError::MethodNotAllowed(e) => {
                 warn!("Method Not Allowed: {} - {}", random_uuid, e);
                 let error_body =
-                    serde_json::json!(CryptPassErrorResponse { error: e, correlation_id: Some(random_uuid) });
+                    serde_json::json!(CryptPassErrorDetails { error: e, correlation_id: Some(random_uuid) });
                 (StatusCode::METHOD_NOT_ALLOWED, axum::Json(error_body)).into_response()
             }
             CryptPassError::RouterError(e) => {
@@ -73,7 +73,7 @@ impl IntoResponse for CryptPassError {
             CryptPassError::BadRequest(e) => {
                 warn!("Bad Request: {} - {}", random_uuid, e);
                 let error_body =
-                    serde_json::json!(CryptPassErrorResponse { error: e, correlation_id: Some(random_uuid) });
+                    serde_json::json!(CryptPassErrorDetails { error: e, correlation_id: Some(random_uuid) });
                 (StatusCode::BAD_REQUEST, axum::Json(error_body)).into_response()
             }
         }

@@ -1,5 +1,5 @@
 use crate::{
-    error::CryptPassErrorResponse,
+    error::CryptPassErrorDetails,
     init::AppState,
     physical::models::KeyValue,
     routers::CryptPassError::{self, BadRequest, InternalServerError, NotFound},
@@ -56,9 +56,9 @@ pub(crate) async fn api() -> Router<AppState> {
     ),
     responses(
         (status = 200, description = "Value found", body = KeyValueData),
-        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
-        (status = 404, description = "Key not found", body = CryptPassErrorResponse),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorDetails),
+        (status = 404, description = "Key not found", body = CryptPassErrorDetails),
+        (status = 500, description = "Internal server error", body = CryptPassErrorDetails),
     ),
     security(
         ("cryptpass_auth_info" = []),
@@ -102,9 +102,9 @@ pub(crate) async fn get_data(
     description = "Update a key",
     responses(
         (status = 201, description = "Value written"),
-        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
-        (status = 404, description = "Key not found", body = CryptPassErrorResponse),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorDetails),
+        (status = 404, description = "Key not found", body = CryptPassErrorDetails),
+        (status = 500, description = "Internal server error", body = CryptPassErrorDetails),
     ),
     request_body(
         content_type = "application/json",
@@ -147,8 +147,8 @@ pub(crate) async fn update_data(
     ),
     responses(
         (status = 204, description = "Key does not exist anymore"),
-        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorDetails),
+        (status = 500, description = "Internal server error", body = CryptPassErrorDetails),
     ),
     security(
         ("cryptpass_auth_info" = []),
@@ -180,9 +180,9 @@ pub(crate) async fn delete_data(
     ),
     responses(
         (status = 200, description = "Key MetaData", body = KeyValue),
-        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
-        (status = 404, description = "Key not found", body = CryptPassErrorResponse),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorDetails),
+        (status = 404, description = "Key not found", body = CryptPassErrorDetails),
+        (status = 500, description = "Internal server error", body = CryptPassErrorDetails),
     ),
     security(
         ("cryptpass_auth_info" = []),
@@ -224,9 +224,9 @@ pub(crate) struct KeyValueList {
     ),
     responses(
         (status = 200, description = "List nested of keys", body = KeyValueList),
-        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
-        (status = 404, description = "Key not found", body = CryptPassErrorResponse),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorDetails),
+        (status = 404, description = "Key not found", body = CryptPassErrorDetails),
+        (status = 500, description = "Internal server error", body = CryptPassErrorDetails),
     ),
     security(
         ("cryptpass_auth_info" = []),
@@ -246,8 +246,8 @@ async fn list_selective_keys(
     description = "List all the keys",
     responses(
         (status = 200, description = "List of keys", body = KeyValueList),
-        (status = 401, description = "Unauthorized", body = CryptPassErrorResponse),
-        (status = 404, description = "Key not found", body = CryptPassErrorResponse),
+        (status = 401, description = "Unauthorized", body = CryptPassErrorDetails),
+        (status = 404, description = "Key not found", body = CryptPassErrorDetails),
     ),
     security(
         ("cryptpass_auth_info" = []),

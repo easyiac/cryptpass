@@ -45,19 +45,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
           description: Key not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
       security:
       - cryptpass_auth_info: []
     put:
@@ -95,19 +95,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
           description: Key not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
       security:
       - cryptpass_auth_info: []
     delete:
@@ -138,13 +138,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
       security:
       - cryptpass_auth_info: []
   /api/v1/keyvalue/details/{key}:
@@ -180,19 +180,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
           description: Key not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
       security:
       - cryptpass_auth_info: []
   /api/v1/keyvalue/list:
@@ -213,13 +213,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
           description: Key not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
       security:
       - cryptpass_auth_info: []
   /api/v1/keyvalue/list/{key}:
@@ -247,19 +247,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
           description: Key not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
       security:
       - cryptpass_auth_info: []
   /api/v1/users/user/{username}:
@@ -286,19 +286,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
       security:
       - cryptpass_auth_info: []
     put:
@@ -331,19 +331,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
       security:
       - cryptpass_auth_info: []
   /health:
@@ -364,7 +364,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
       security: []
   /login:
     post:
@@ -376,7 +376,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequestBody'
+              $ref: '#/components/schemas/LoginRequest'
         required: true
       responses:
         '200':
@@ -384,19 +384,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponseBody'
+                $ref: '#/components/schemas/LoginResponse'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
       security: []
   /unlock:
     post:
@@ -421,11 +421,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptPassErrorResponse'
+                $ref: '#/components/schemas/CryptPassErrorDetails'
       security: []
 components:
   schemas:
-    CryptPassErrorResponse:
+    CryptPassErrorDetails:
       type: object
       required:
       - error
@@ -511,7 +511,7 @@ components:
           type: array
           items:
             type: string
-    LoginRequestBody:
+    LoginRequest:
       type: object
       properties:
         password:
@@ -522,7 +522,7 @@ components:
           type:
           - string
           - 'null'
-    LoginResponseBody:
+    LoginResponse:
       type: object
       properties:
         token:

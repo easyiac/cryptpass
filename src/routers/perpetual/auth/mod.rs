@@ -31,13 +31,13 @@ pub(crate) struct JWTClaims {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
-pub(crate) struct LoginRequestBody {
+pub(crate) struct LoginRequest {
     pub(crate) username: Option<String>,
     pub(crate) password: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
-pub(crate) struct LoginResponseBody {
+pub(crate) struct LoginResponse {
     pub(crate) token: Option<String>,
     #[serde(rename = "type")]
     pub(crate) token_type: Option<String>,
