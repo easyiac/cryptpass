@@ -14,21 +14,14 @@ use axum::{
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rand::Rng;
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::{SystemTime, UNIX_EPOCH};
-use utoipa::ToSchema;
 
 pub(super) async fn api() -> Router<crate::init::AppState> {
     Router::new()
         .route("/user/{username}", put(create_update_user))
         .route("/user/{username}", get(get_user))
         .fallback(crate::routers::fallback::fallback_handler)
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
-pub(crate) struct UnlockRequestBody {
-    pub(crate) token: String,
 }
 
 #[utoipa::path(
@@ -59,7 +52,7 @@ async fn get_user(
     let user = conn
         .interact(move |conn| crate::services::users::get_user(username.as_str(), conn))
         .await
-        .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??
+        .map_err(|ex| InternalServerError(format!("Error interacting with database: {}", ex)))??
         .ok_or_else(|| NotFound(format!("User with key {} not found", user_err)))?;
     Ok((StatusCode::OK, Json(user)))
 }

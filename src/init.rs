@@ -1,7 +1,7 @@
 use crate::{
     error::CryptPassError::{self, BadRequest, InternalServerError},
     physical::models::{Privilege, PrivilegeType, Role, RoleType, Users},
-    services::{self, encryption::INTERNAL_ENCRYPTION_KEY, get_settings, set_settings, InternalEncryptionKeySettings},
+    services::{self, encryption::INTERNAL_ENCRYPTION_KEY, get_settings, set_settings},
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use deadpool_diesel::sqlite::Pool;
@@ -17,6 +17,7 @@ use std::{
 use tracing::{debug, error, info, trace, warn};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
+use utoipa::ToSchema;
 
 pub(crate) static CRYPTPASS_CONFIG_INSTANCE: OnceLock<Configuration> = OnceLock::new();
 
@@ -172,7 +173,12 @@ pub(crate) fn load_configuration() -> Configuration {
 
 pub(crate) fn initialize_logging() {
     println!("Initializing logging...");
-    let log_level = std::env::var("CRYPTPASS_LOG_LEVEL").unwrap_or_else(|_| "INFO".to_string()).to_uppercase();
+    let log_level = std::env::var("CRYPTPASS_LOG_LEVEL")
+        .unwrap_or_else(|ex| {
+            debug!("Environment variable CRYPTPASS_LOG_LEVEL not set, error: {}", ex);
+            "INFO".to_string()
+        })
+        .to_uppercase();
 
     let log_levels = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"];
     if !log_levels.contains(&&*log_level) {
@@ -180,7 +186,10 @@ pub(crate) fn initialize_logging() {
     }
 
     println!("Log level: {}", log_level);
-    let log_dir = std::env::var("CRYPTPASS_LOG_DIR").unwrap_or_else(|_| "/var/log/cryptpass".to_string());
+    let log_dir = std::env::var("CRYPTPASS_LOG_DIR").unwrap_or_else(|ex| {
+        debug!("Environment variable CRYPTPASS_LOG_DIR not set, error: {}", ex);
+        "/var/log/cryptpass".to_string()
+    });
     println!("Log directory: {}", log_dir);
     if !Path::new(&log_dir).exists() {
         fs::create_dir_all(&log_dir).unwrap_or_else(|ex| {
@@ -252,10 +261,17 @@ pub(crate) fn initialize_logging() {
     trace!("LOGGER TEST: Trace logging enabled");
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
+pub(crate) struct InternalEncryptionKeyDetails {
+    pub(crate) encrypted_key: String,
+    pub(crate) hash: String,
+    pub(crate) encryptor_hash: String,
+}
+
 pub(crate) fn init_unlock(
     master_key: String,
     conn: &mut SqliteConnection,
-) -> Result<InternalEncryptionKeySettings, CryptPassError> {
+) -> Result<InternalEncryptionKeyDetails, CryptPassError> {
     info!("Initializing unlock");
     let master_key_hash = crate::utils::hash(&master_key);
     let existing_internal_encryption_key_encrypted_str =
@@ -263,7 +279,7 @@ pub(crate) fn init_unlock(
     let internal_encryption_key = match existing_internal_encryption_key_encrypted_str {
         Some(existing_internal_encryption_key_str) => {
             info!("Internal encryption key exists");
-            let existing_internal_encryption_key: InternalEncryptionKeySettings =
+            let existing_internal_encryption_key: InternalEncryptionKeyDetails =
                 serde_json::from_str(&existing_internal_encryption_key_str.value)
                     .map_err(|ex| BadRequest(format!("Failed to parse internal encryption key: {}", ex)))?;
             if existing_internal_encryption_key.encryptor_hash != master_key_hash {
@@ -284,7 +300,7 @@ pub(crate) fn init_unlock(
             new_key
         }
     };
-    let internal_enc_key_settings = InternalEncryptionKeySettings {
+    let internal_enc_key_settings = InternalEncryptionKeyDetails {
         encrypted_key: crate::utils::encrypt(&master_key.clone(), &internal_encryption_key)?,
         hash: crate::utils::hash(&internal_encryption_key),
         encryptor_hash: master_key_hash,

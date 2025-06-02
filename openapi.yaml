@@ -350,6 +350,7 @@ paths:
     get:
       tags:
       - Perpetual
+      description: Application health check results
       operationId: health_handler
       responses:
         '200':
@@ -357,7 +358,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
+                $ref: '#/components/schemas/Health'
         '500':
           description: Internal server error
           content:
@@ -406,7 +407,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UnlockRequestBody'
+              $ref: '#/components/schemas/UnlockRequest'
         required: true
       responses:
         '200':
@@ -414,7 +415,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalEncryptionKeySettings'
+                $ref: '#/components/schemas/InternalEncryptionKeyDetails'
         '500':
           description: Internal server error
           content:
@@ -453,14 +454,14 @@ components:
           Array:
             type: array
             items: {}
-    HealthResponse:
+    Health:
       type: object
       required:
       - status
       properties:
         status:
           type: string
-    InternalEncryptionKeySettings:
+    InternalEncryptionKeyDetails:
       type: object
       required:
       - encrypted_key
@@ -561,7 +562,7 @@ components:
       enum:
       - ADMIN
       - USER
-    UnlockRequestBody:
+    UnlockRequest:
       type: object
       required:
       - token

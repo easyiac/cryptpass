@@ -34,16 +34,18 @@ async fn main() {
         info!("Database migrations completed.");
     }
 
-    info!("Authorization header key: {}", configuration.server.auth_header_key);
-    if let Some(master_enc_key) = &configuration.server.physical.master_encryption_key {
-        warn!("Setting physical master encryption key from configuration which is not recommended. Use /unlock endpoint instead.");
-        conn.interact(|conn| init::init_unlock(master_enc_key.clone(), conn))
-            .await
-            .expect("Failed to set encryption key, Unable to interact with database")
-            .expect("Unable to set encryption key in database");
-        info!("Initialized encryption key");
-    } else {
-        info!("No master encryption key provided in configuration. Use /unlock endpoint to set it.");
+    {
+        info!("Authorization header key: {}", configuration.server.auth_header_key);
+        if let Some(master_enc_key) = &configuration.server.physical.master_encryption_key {
+            warn!("Setting physical master encryption key from configuration which is not recommended. Use /unlock endpoint instead.");
+            conn.interact(|conn| init::init_unlock(master_enc_key.clone(), conn))
+                .await
+                .expect("Failed to set encryption key, Unable to interact with database")
+                .expect("Unable to set encryption key in database");
+            info!("Initialized encryption key");
+        } else {
+            info!("No master encryption key provided in configuration. Use /unlock endpoint to set it.");
+        }
     }
     let app_state = init::AppState { pool };
     routers::axum_server(app_state).await.unwrap_or_else(|ex| panic!("Unable to start server: {}", ex))

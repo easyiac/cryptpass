@@ -3,10 +3,16 @@ use crate::{
         CryptPassError::{self, InternalServerError},
         CryptPassErrorResponse,
     },
-    routers::api::v1::users::UnlockRequestBody,
-    services::InternalEncryptionKeySettings,
+    init::InternalEncryptionKeyDetails,
 };
 use axum::{extract::State, http::StatusCode, Json};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
+pub(crate) struct UnlockRequest {
+    pub(crate) token: String,
+}
 
 #[utoipa::path(
     post,
@@ -16,20 +22,20 @@ use axum::{extract::State, http::StatusCode, Json};
         (
             status = 200,
             description = "Internal encryption key details, Not the actual key",
-            body = InternalEncryptionKeySettings
+            body = InternalEncryptionKeyDetails,
         ),
-        (status = 500, description = "Internal server error", body = CryptPassErrorResponse)
+        (status = 500, description = "Internal server error", body = CryptPassErrorResponse),
     ),
-    security()
+    security(),
 )]
 pub(crate) async fn unlock_handler(
     State(shared_state): State<crate::init::AppState>,
-    body: Json<UnlockRequestBody>,
-) -> Result<(StatusCode, Json<InternalEncryptionKeySettings>), CryptPassError> {
+    body: Json<UnlockRequest>,
+) -> Result<(StatusCode, Json<InternalEncryptionKeyDetails>), CryptPassError> {
     let master_key = body.token.clone();
     let pool = shared_state.pool;
     let conn =
-        pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
+        pool.get().await.map_err(|ex| InternalServerError(format!("Error getting connection from pool: {}", ex)))?;
 
     let set_key = conn
         .interact(move |conn| crate::init::init_unlock(master_key, conn))

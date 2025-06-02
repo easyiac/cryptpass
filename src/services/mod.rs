@@ -7,17 +7,8 @@ use crate::{
     physical::models::AppSettings,
 };
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection};
-use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::info;
-use utoipa::ToSchema;
-
-#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
-pub(crate) struct InternalEncryptionKeySettings {
-    pub(crate) encrypted_key: String,
-    pub(crate) hash: String,
-    pub(crate) encryptor_hash: String,
-}
 
 pub(crate) fn get_settings(
     settings_key: String,
