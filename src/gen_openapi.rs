@@ -10,7 +10,7 @@ use utoipa::OpenApi;
 
 fn main() {
     let path = "./docs/OpenAPI.yaml";
-    println!("Deleting old openapi yaml at {}", path);
+    println!("Deleting old openapi at {}", path);
 
     if Path::new(path).exists() {
         if let Err(e) = fs::remove_file(path) {
@@ -22,8 +22,10 @@ fn main() {
         println!("File does not exist. {}", path);
     }
 
-    println!("Generating openapi.json at {}", path);
+    println!("Generating openapi at {}", path);
 
-    fs::write(path, routers::ApiDoc::openapi().to_yaml().expect("Unable to convert to pretty json"))
+    fs::write(path, routers::ApiDoc::openapi().to_yaml().expect("Unable to generate OpenAPI."))
         .expect("Unable to write to file");
+    println!("OpenAPI generation complete. You can find the file at {}", path);
+    std::process::exit(0);
 }
