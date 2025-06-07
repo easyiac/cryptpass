@@ -11,15 +11,15 @@ use axum::{extract::State, http::StatusCode, Json};
     post,
     path = "/perpetual/unlock",
     tag = "Perpetual",
-    summary = "Unlocks the application",
-    description = "Unlocks the application with the provided master key",
+    summary = "Unlock the application with a master key.",
+    description = "Unlocks the CryptPass application by providing the master encryption key. This endpoint is required to enable access to encrypted data after startup. Returns internal encryption key details (not the actual key).",
     responses(
         (
             status = 200,
-            description = "Internal encryption key details, Not the actual key",
+            description = "Application unlocked. Internal encryption key details returned.",
             body = InternalEncryptionKeyDetails,
         ),
-        (status = 500, description = "Internal server error", body = CryptPassErrorDetails),
+        (status = 500, description = "Internal server error.", body = CryptPassErrorDetails),
     ),
     security(),
 )]

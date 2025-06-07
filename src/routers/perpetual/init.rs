@@ -11,16 +11,16 @@ use axum::{extract::State, http::StatusCode, Json};
     post,
     path = "/perpetual/initialize",
     tag = "Perpetual",
-    summary = "Initialize the application",
-    description = "Initialize the application",
+    summary = "Initialize the application and generate master key.",
+    description = "Initializes the CryptPass application, generating and storing the master encryption key. This endpoint should be called once during setup. Returns details about the generated key.",
     responses(
         (
             status = 201,
-            description = "Internal encryption key details, Not the actual key",
+            description = "Application initialized. Master key details returned.",
             body = ApplicationInitializationDetails,
         ),
-        (status = 400, description = "Bad request", body = CryptPassErrorDetails),
-        (status = 500, description = "Internal server error", body = CryptPassErrorDetails),
+        (status = 400, description = "Bad request: initialization failed.", body = CryptPassErrorDetails),
+        (status = 500, description = "Internal server error.", body = CryptPassErrorDetails),
     ),
     security(),
 )]

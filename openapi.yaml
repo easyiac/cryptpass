@@ -16,13 +16,13 @@ paths:
     get:
       tags:
       - Key-Value
-      summary: Read a key
-      description: Read a key
+      summary: Fetch the value for a specific key.
+      description: Retrieve the value associated with a given key. Optionally, a specific version can be requested. Returns the value as JSON if found, or an error if the key does not exist or access is unauthorized.
       operationId: get_data
       parameters:
       - name: key
         in: path
-        description: Key to read
+        description: Key to read the value for.
         required: true
         schema:
           type: string
@@ -36,25 +36,25 @@ paths:
           format: int32
       responses:
         '200':
-          description: Value found
+          description: Value found for the key.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/KeyValueData'
         '401':
-          description: Unauthorized
+          description: Unauthorized access.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
-          description: Key not found
+          description: Key not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
-          description: Internal server error
+          description: Internal server error.
           content:
             application/json:
               schema:
@@ -64,13 +64,13 @@ paths:
     put:
       tags:
       - Key-Value
-      summary: Update a key
-      description: Update a key
+      summary: Create or update the value for a key.
+      description: 'Create a new value or update the existing value for a given key. Supports versioning: if a version is provided, updates that version; otherwise, creates a new version. Accepts a JSON body with the value.'
       operationId: update_data
       parameters:
       - name: key
         in: path
-        description: Key to write
+        description: Key to write or update.
         required: true
         schema:
           type: string
@@ -83,7 +83,7 @@ paths:
           - 'null'
           format: int32
       requestBody:
-        description: Json secret
+        description: JSON object containing the value to store.
         content:
           application/json:
             schema:
@@ -91,21 +91,21 @@ paths:
         required: true
       responses:
         '201':
-          description: Value written
+          description: Value written or updated successfully.
         '401':
-          description: Unauthorized
+          description: Unauthorized access.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
-          description: Key not found
+          description: Key not found for update.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
-          description: Internal server error
+          description: Internal server error.
           content:
             application/json:
               schema:
@@ -115,13 +115,13 @@ paths:
     delete:
       tags:
       - Key-Value
-      summary: Delete a key
-      description: Delete a key
+      summary: Delete a key or a specific version.
+      description: Delete the value for a given key, or a specific version if provided. If the key or version does not exist, the operation is a no-op. Returns no content on success.
       operationId: delete_data
       parameters:
       - name: key
         in: path
-        description: Key to delete
+        description: Key to delete.
         required: true
         schema:
           type: string
@@ -135,15 +135,15 @@ paths:
           format: int32
       responses:
         '204':
-          description: Key does not exist anymore
+          description: Key or version deleted (or did not exist).
         '401':
-          description: Unauthorized
+          description: Unauthorized access.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
-          description: Internal server error
+          description: Internal server error.
           content:
             application/json:
               schema:
@@ -154,13 +154,13 @@ paths:
     get:
       tags:
       - Key-Value
-      summary: Get key metadata
-      description: Get key metadata
+      summary: Get metadata for a key.
+      description: Retrieve metadata (such as creation time, version, etc.) for a given key. Does not return the value itself. Useful for auditing and management.
       operationId: details
       parameters:
       - name: key
         in: path
-        description: Key to read
+        description: Key to fetch metadata for.
         required: true
         schema:
           type: string
@@ -174,25 +174,25 @@ paths:
           format: int32
       responses:
         '200':
-          description: Key MetaData
+          description: Metadata for the key.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/KeyValue'
         '401':
-          description: Unauthorized
+          description: Unauthorized access.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
-          description: Key not found
+          description: Key not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
-          description: Internal server error
+          description: Internal server error.
           content:
             application/json:
               schema:
@@ -203,24 +203,24 @@ paths:
     get:
       tags:
       - Key-Value
-      summary: List all the keys
-      description: List all the keys
+      summary: List all keys in the store.
+      description: Retrieve a flat list of all keys currently stored in the key-value store. Useful for administrative and backup purposes.
       operationId: list_all_keys
       responses:
         '200':
-          description: List of keys
+          description: List of all keys.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/KeyValueList'
         '401':
-          description: Unauthorized
+          description: Unauthorized access.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
-          description: Key not found
+          description: No keys found.
           content:
             application/json:
               schema:
@@ -231,37 +231,37 @@ paths:
     get:
       tags:
       - Key-Value
-      summary: List nested keys
-      description: List nested keys
+      summary: List nested keys under a prefix.
+      description: List all keys that are nested under the given key prefix. Useful for browsing hierarchical key structures.
       operationId: list_selective_keys
       parameters:
       - name: key
         in: path
-        description: Key to read
+        description: Key prefix to list nested keys for.
         required: true
         schema:
           type: string
       responses:
         '200':
-          description: List nested of keys
+          description: List of nested keys.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/KeyValueList'
         '401':
-          description: Unauthorized
+          description: Unauthorized access.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
-          description: Key not found
+          description: Key prefix not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
-          description: Internal server error
+          description: Internal server error.
           content:
             application/json:
               schema:
@@ -272,37 +272,37 @@ paths:
     get:
       tags:
       - Users
-      summary: Get user
-      description: Get user by username
+      summary: Fetch user details by username.
+      description: Retrieve the user record for a given username. Returns user details if found, or an error if the user does not exist or access is unauthorized.
       operationId: get_user
       parameters:
       - name: username
         in: path
-        description: Username of the user to get
+        description: Username of the user to fetch.
         required: true
         schema:
           type: string
       responses:
         '200':
-          description: User
+          description: User found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Users'
         '401':
-          description: Unauthorized
+          description: Unauthorized access.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
-          description: User not found
+          description: User not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
-          description: Internal server error
+          description: Internal server error.
           content:
             application/json:
               schema:
@@ -312,18 +312,18 @@ paths:
     put:
       tags:
       - Users
-      summary: Create or update user
-      description: Create or update user by username
+      summary: Create or update a user by username.
+      description: Create a new user or update an existing user record for the specified username. Accepts a JSON body with user details. Returns the updated user record.
       operationId: create_update_user
       parameters:
       - name: username
         in: path
-        description: Username of the user to update
+        description: Username of the user to create or update.
         required: true
         schema:
           type: string
       requestBody:
-        description: User to update
+        description: User object to create or update.
         content:
           application/json:
             schema:
@@ -331,25 +331,25 @@ paths:
         required: true
       responses:
         '201':
-          description: User
+          description: User created or updated.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Users'
         '401':
-          description: Unauthorized
+          description: Unauthorized access.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '404':
-          description: User not found
+          description: User not found for update.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
-          description: Internal server error
+          description: Internal server error.
           content:
             application/json:
               schema:
@@ -360,18 +360,18 @@ paths:
     get:
       tags:
       - Perpetual
-      summary: Application health check
-      description: Application health check results
+      summary: Check application health status.
+      description: Returns the health status of the CryptPass application. Useful for monitoring and readiness checks. Responds with a simple status message.
       operationId: health_handler
       responses:
         '200':
-          description: Health Response
+          description: Health check successful.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Health'
         '500':
-          description: Internal server error
+          description: Internal server error.
           content:
             application/json:
               schema:
@@ -381,24 +381,24 @@ paths:
     post:
       tags:
       - Perpetual
-      summary: Initialize the application
-      description: Initialize the application
+      summary: Initialize the application and generate master key.
+      description: Initializes the CryptPass application, generating and storing the master encryption key. This endpoint should be called once during setup. Returns details about the generated key.
       operationId: init_app_handler
       responses:
         '201':
-          description: Internal encryption key details, Not the actual key
+          description: Application initialized. Master key details returned.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApplicationInitializationDetails'
         '400':
-          description: Bad request
+          description: 'Bad request: initialization failed.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
-          description: Internal server error
+          description: Internal server error.
           content:
             application/json:
               schema:
@@ -408,8 +408,8 @@ paths:
     post:
       tags:
       - Perpetual
-      summary: Login
-      description: Login endpoint for username and password authentication
+      summary: Authenticate and obtain a login token.
+      description: Authenticate a user using username and password. Returns a JWT token on successful authentication, which can be used for subsequent authorized requests. Responds with error details if authentication fails.
       operationId: login_handler
       requestBody:
         content:
@@ -419,19 +419,19 @@ paths:
         required: true
       responses:
         '200':
-          description: Create login token
+          description: Login successful. JWT token returned.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
         '401':
-          description: Unauthorized
+          description: 'Unauthorized: invalid credentials.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
         '500':
-          description: Internal server error
+          description: Internal server error.
           content:
             application/json:
               schema:
@@ -441,8 +441,8 @@ paths:
     post:
       tags:
       - Perpetual
-      summary: Unlocks the application
-      description: Unlocks the application with the provided master key
+      summary: Unlock the application with a master key.
+      description: Unlocks the CryptPass application by providing the master encryption key. This endpoint is required to enable access to encrypted data after startup. Returns internal encryption key details (not the actual key).
       operationId: unlock_handler
       requestBody:
         content:
@@ -452,13 +452,13 @@ paths:
         required: true
       responses:
         '200':
-          description: Internal encryption key details, Not the actual key
+          description: Application unlocked. Internal encryption key details returned.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/InternalEncryptionKeyDetails'
         '500':
-          description: Internal server error
+          description: Internal server error.
           content:
             application/json:
               schema:

@@ -18,12 +18,12 @@ use tracing::trace;
     post,
     path = "/perpetual/login",
     tag = "Perpetual",
-    summary = "Login",
-    description = "Login endpoint for username and password authentication",
+    summary = "Authenticate and obtain a login token.",
+    description = "Authenticate a user using username and password. Returns a JWT token on successful authentication, which can be used for subsequent authorized requests. Responds with error details if authentication fails.",
     responses(
-        (status = 200, description = "Create login token", body = LoginResponse),
-        (status = 401, description = "Unauthorized", body = CryptPassErrorDetails),
-        (status = 500, description = "Internal server error", body = CryptPassErrorDetails)
+        (status = 200, description = "Login successful. JWT token returned.", body = LoginResponse),
+        (status = 401, description = "Unauthorized: invalid credentials.", body = CryptPassErrorDetails),
+        (status = 500, description = "Internal server error.", body = CryptPassErrorDetails)
     ),
     security(),
 )]
