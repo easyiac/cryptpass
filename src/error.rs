@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use tracing::warn;
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub(crate) struct CryptPassErrorDetails {
@@ -14,87 +13,72 @@ pub(crate) struct CryptPassErrorDetails {
     pub(crate) correlation_id: Option<String>,
 }
 
+impl Display for CryptPassErrorDetails {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error: {} - {}", self.error, self.correlation_id.clone().unwrap_or("No Correlation ID".to_string()))
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub(crate) enum CryptPassError {
-    RouterError(String),
-    NotFound(String),
-    InternalServerError(String),
-    Unauthorized(String),
-    MethodNotAllowed(String),
-    BadRequest(String),
-    ApplicationNotInitialized,
-    ApplicationNotUnlocked,
+    RouterError(CryptPassErrorDetails),
+    NotFound(CryptPassErrorDetails),
+    InternalServerError(CryptPassErrorDetails),
+    Unauthorized(CryptPassErrorDetails),
+    MethodNotAllowed(CryptPassErrorDetails),
+    BadRequest(CryptPassErrorDetails),
+    ApplicationNotInitialized(CryptPassErrorDetails),
+    ApplicationNotUnlocked(CryptPassErrorDetails),
 }
 
 impl Display for CryptPassError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CryptPassError::NotFound(e) => write!(f, "Not Found: {}", e),
-            CryptPassError::InternalServerError(e) => write!(f, "Internal Server Error: {}", e),
-            CryptPassError::Unauthorized(e) => write!(f, "Unauthorized: {}", e),
-            CryptPassError::MethodNotAllowed(e) => write!(f, "Method Not Allowed: {}", e),
-            CryptPassError::RouterError(e) => write!(f, "Router Error: {}", e),
-            CryptPassError::BadRequest(e) => write!(f, "Bad Request: {}", e),
-            CryptPassError::ApplicationNotInitialized => write!(f, "Application Not Initialized.",),
-            CryptPassError::ApplicationNotUnlocked => write!(f, "Application Not Unlocked.",),
+            CryptPassError::NotFound(e) => write!(f, "Not Found: {}.", e),
+            CryptPassError::InternalServerError(e) => write!(f, "Internal Server Error: {}.", e),
+            CryptPassError::Unauthorized(e) => write!(f, "Unauthorized: {}.", e),
+            CryptPassError::MethodNotAllowed(e) => write!(f, "Method Not Allowed: {}.", e),
+            CryptPassError::RouterError(e) => write!(f, "Router Error: {}.", e),
+            CryptPassError::BadRequest(e) => write!(f, "Bad Request: {}.", e),
+            CryptPassError::ApplicationNotInitialized(e) => write!(f, "Application Not Initialized: {}.", e),
+            CryptPassError::ApplicationNotUnlocked(e) => write!(f, "Application Not Unlocked: {}.", e),
         }
     }
 }
 impl IntoResponse for CryptPassError {
     fn into_response(self) -> Response {
-        let random_uuid = Uuid::new_v4().to_string();
         match self {
             CryptPassError::NotFound(ex) => {
-                warn!("Not Found: {} - {}", random_uuid, ex);
-                let error_body =
-                    serde_json::json!(CryptPassErrorDetails { error: ex, correlation_id: Some(random_uuid) });
-                (StatusCode::NOT_FOUND, axum::Json(error_body)).into_response()
+                warn!("Not Found: {}.", ex);
+                (StatusCode::NOT_FOUND, axum::Json(ex)).into_response()
             }
             CryptPassError::InternalServerError(ex) => {
-                warn!("Internal Server Error: {} - {}", random_uuid, ex);
-                let error_body = serde_json::json!(CryptPassErrorDetails {
-                    error: "Internal Server Error".to_string(),
-                    correlation_id: Some(random_uuid)
-                });
-                (StatusCode::INTERNAL_SERVER_ERROR, axum::Json(error_body)).into_response()
+                warn!("Internal Server Error: {}.", ex);
+                (StatusCode::INTERNAL_SERVER_ERROR, axum::Json(ex)).into_response()
             }
             CryptPassError::Unauthorized(ex) => {
-                warn!("Unauthorized: {} - {}", random_uuid, ex);
-                let error_body =
-                    serde_json::json!(CryptPassErrorDetails { error: ex, correlation_id: Some(random_uuid) });
-                (StatusCode::UNAUTHORIZED, axum::Json(error_body)).into_response()
+                warn!("Unauthorized: {}.",  ex);
+                (StatusCode::UNAUTHORIZED, axum::Json(ex)).into_response()
             }
             CryptPassError::MethodNotAllowed(ex) => {
-                warn!("Method Not Allowed: {} - {}", random_uuid, ex);
-                let error_body =
-                    serde_json::json!(CryptPassErrorDetails { error: ex, correlation_id: Some(random_uuid) });
-                (StatusCode::METHOD_NOT_ALLOWED, axum::Json(error_body)).into_response()
+                warn!("Method Not Allowed: {}.", ex);
+                (StatusCode::METHOD_NOT_ALLOWED, axum::Json(ex)).into_response()
             }
             CryptPassError::RouterError(ex) => {
-                warn!("Router Error: {} - {}", random_uuid, ex);
-                panic!("Router Error, RouterErrors are not meant to be returned: {}", ex)
+                warn!("Router Error: {}.", ex);
+                panic!("Router Error, RouterErrors are not meant to be returned: {}.", ex)
             }
             CryptPassError::BadRequest(ex) => {
-                warn!("Bad Request: {} - {}", random_uuid, ex);
-                let error_body =
-                    serde_json::json!(CryptPassErrorDetails { error: ex, correlation_id: Some(random_uuid) });
-                (StatusCode::BAD_REQUEST, axum::Json(error_body)).into_response()
+                warn!("Bad Request: {}.", ex);
+                (StatusCode::BAD_REQUEST, axum::Json(ex)).into_response()
             }
-            CryptPassError::ApplicationNotUnlocked => {
-                warn!("Application Not Unlocked: {}.", random_uuid);
-                let error_body = serde_json::json!(CryptPassErrorDetails {
-                    error: "Application Not Unlocked".to_string(),
-                    correlation_id: Some(random_uuid)
-                });
-                (StatusCode::FORBIDDEN, axum::Json(error_body)).into_response()
+            CryptPassError::ApplicationNotUnlocked(ex) => {
+                warn!("Application Not Unlocked: {}.", ex);
+                (StatusCode::FORBIDDEN, axum::Json(ex)).into_response()
             }
-            CryptPassError::ApplicationNotInitialized => {
-                warn!("Application Not Initialized: {}.", random_uuid,);
-                let error_body = serde_json::json!(CryptPassErrorDetails {
-                    error: "Application Not Initialized".to_string(),
-                    correlation_id: Some(random_uuid)
-                });
-                (StatusCode::FORBIDDEN, axum::Json(error_body)).into_response()
+            CryptPassError::ApplicationNotInitialized(ex) => {
+                warn!("Application Not Initialized: {}.", ex);
+                (StatusCode::FORBIDDEN, axum::Json(ex)).into_response()
             }
         }
     }
