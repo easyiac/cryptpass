@@ -1,9 +1,6 @@
 use crate::{
     cryptpass_error,
-    error::{
-        CryptPassError::{self, BadRequest, InternalServerError},
-        CryptPassErrorDetails,
-    },
+    error::{CryptPassError, CryptPassErrorDetails},
 };
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use base64::{prelude::BASE64_STANDARD, Engine};
@@ -23,9 +20,9 @@ fn build_keys(correlation_id: Option<String>, key_iv_base64: &str) -> Result<([u
     })?;
     let key: [u8; 32] = key_decoded.try_into().map_err(|ex| {
         cryptpass_error!(
-            BadRequest, 
-            "Error converting key_decoded to [u8; 32]", 
-            correlation_id.clone(), 
+            BadRequest,
+            "Error converting key_decoded to [u8; 32]",
+            correlation_id.clone(),
             format!("Error converting key_decoded to [u8; 32]: {:?}", ex)
         )
     })?;
@@ -35,16 +32,20 @@ fn build_keys(correlation_id: Option<String>, key_iv_base64: &str) -> Result<([u
     })?;
     let iv: [u8; 16] = iv_decoded.try_into().map_err(|ex| {
         cryptpass_error!(
-            BadRequest, 
-            "Error converting iv_decoded to [u8; 16]", 
-            correlation_id, 
+            BadRequest,
+            "Error converting iv_decoded to [u8; 16]",
+            correlation_id,
             format!("Error converting iv_decoded to [u8; 16]: {:?}", ex)
         )
     })?;
     Ok((key, iv))
 }
 
-pub(super) fn encryption(correlation_id: Option<String>, key_iv_base64: &str, plaintext: &str) -> Result<String, CryptPassError> {
+pub(super) fn encryption(
+    correlation_id: Option<String>,
+    key_iv_base64: &str,
+    plaintext: &str,
+) -> Result<String, CryptPassError> {
     let (key, iv) = build_keys(correlation_id.clone(), key_iv_base64)?;
 
     let plaintext_bin: Vec<u8> = plaintext.as_bytes().to_vec();
@@ -60,18 +61,27 @@ pub(super) fn encryption(correlation_id: Option<String>, key_iv_base64: &str, pl
     Ok(ct_base64)
 }
 
-pub(super) fn decryption(correlation_id: Option<String>, key_iv_base64: &str, prefix_encrypted_text_base64: &str) -> Result<String, CryptPassError> {
+pub(super) fn decryption(
+    correlation_id: Option<String>,
+    key_iv_base64: &str,
+    prefix_encrypted_text_base64: &str,
+) -> Result<String, CryptPassError> {
     let (key, iv) = build_keys(correlation_id.clone(), key_iv_base64)?;
 
     let prefix_encrypted_text_base64_split = prefix_encrypted_text_base64.split("$:").collect::<Vec<&str>>();
 
     if prefix_encrypted_text_base64_split.len() != 3 && prefix_encrypted_text_base64_split[1] != "AES256CBC" {
-        return Err(cryptpass_error!(BadRequest, "Invalid data, it should start with enc:$:AES256CBC:$:", correlation_id));
+        return Err(cryptpass_error!(
+            BadRequest,
+            "Invalid data, it should start with enc:$:AES256CBC:$:",
+            correlation_id
+        ));
     }
 
-    let encrypted_text_decoded: Vec<u8> = BASE64_STANDARD
-        .decode(prefix_encrypted_text_base64_split[2].as_bytes())
-        .map_err(|ex| cryptpass_error!(BadRequest, "Error decoding encrypted_text_base64", correlation_id.clone(), ex.to_string()))?;
+    let encrypted_text_decoded: Vec<u8> =
+        BASE64_STANDARD.decode(prefix_encrypted_text_base64_split[2].as_bytes()).map_err(|ex| {
+            cryptpass_error!(BadRequest, "Error decoding encrypted_text_base64", correlation_id.clone(), ex.to_string())
+        })?;
     let encrypted_text_bin: Vec<u8> = encrypted_text_decoded.to_vec();
     type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
 
