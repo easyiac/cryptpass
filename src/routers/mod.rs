@@ -1,7 +1,8 @@
 mod api;
-mod fallback;
 mod perpetual;
 mod printer;
+
+pub(crate) mod correlation_id;
 
 use crate::{
     error::CryptPassError::{self, RouterError},
@@ -9,7 +10,7 @@ use crate::{
     init::CRYPTPASS_CONFIG_INSTANCE,
     utils::file_or_string,
 };
-use axum::middleware;
+use axum::{http::StatusCode, middleware};
 use axum_server::tls_rustls::RustlsConfig;
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
@@ -88,9 +89,10 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
         .nest("/api", api::api().await)
         .layer(middleware::from_fn_with_state(shared_state.clone(), perpetual::auth::layer::auth_layer))
         .with_state(shared_state)
-        .fallback(fallback::fallback_handler)
+        .fallback(|| async { StatusCode::NOT_FOUND })
         // .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::middleware::from_fn(printer::print_request_response))
+        .layer(middleware::from_fn(printer::print_request_response))
+        .layer(middleware::from_fn(correlation_id::set_correlation_id))
         .layer(CorsLayer::new().allow_headers(Any).allow_methods(Any).allow_origin(Any).expose_headers(Any));
 
     if let Some(server_tls) = server.clone().tls {

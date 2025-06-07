@@ -21,7 +21,6 @@ pub(super) async fn api() -> Router<crate::init::AppState> {
     Router::new()
         .route("/user/{username}", put(create_update_user))
         .route("/user/{username}", get(get_user))
-        .fallback(crate::routers::fallback::fallback_handler)
 }
 
 #[utoipa::path(
