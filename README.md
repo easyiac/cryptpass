@@ -112,26 +112,27 @@ CryptPass provides the following API endpoints:
 
 #### Key-Value Operations
 
-- `GET /api/v1/keyvalue/data/{key}` - Read a key
-- `PUT /api/v1/keyvalue/data/{key}` - Update a key
-- `DELETE /api/v1/keyvalue/data/{key}` - Delete a key
-- `GET /api/v1/keyvalue/details/{key}` - Get key metadata
-- `GET /api/v1/keyvalue/list` - List all keys
-- `GET /api/v1/keyvalue/list/{key}` - List nested keys
+- `GET /api/v1/keyvalue/data/{key}` - Fetch the value for a specific key
+- `PUT /api/v1/keyvalue/data/{key}` - Create or update the value for a key
+- `DELETE /api/v1/keyvalue/data/{key}` - Delete a key or a specific version
+- `GET /api/v1/keyvalue/details/{key}` - Get metadata for a key
+- `GET /api/v1/keyvalue/list` - List all keys in the store
+- `GET /api/v1/keyvalue/list/{key}` - List nested keys under a prefix
 
 #### User Management
 
-- `GET /api/v1/users/user/{username}` - Get user details
-- `PUT /api/v1/users/user/{username}` - Create or update a user
+- `GET /api/v1/users/user/{username}` - Fetch user details by username
+- `PUT /api/v1/users/user/{username}` - Create or update a user by username
 
-#### Authentication
+#### Authentication & Initialization
 
-- `POST /perpetual/login` - Login with username and password
-- `POST /perpetual/unlock` - Unlock with master key
+- `POST /perpetual/login` - Authenticate and obtain a login token
+- `POST /perpetual/unlock` - Unlock the application with a master key
+- `POST /perpetual/initialize` - Initialize the application and generate master key
 
 #### Health Check
 
-- `GET /perpetual/health` - Check server health
+- `GET /perpetual/health` - Check application health status
 
 ### Example Usage
 
