@@ -117,7 +117,7 @@ pub(crate) async fn update_data(
     State(shared_state): State<AppState>,
     body: Json<KeyValueData>,
 ) -> Result<impl IntoResponse, CryptPassError> {
-    info!("Key Value data api request for key: {}", key);
+    info!("Key Value update data api request for key: {}", key);
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
@@ -156,7 +156,7 @@ pub(crate) async fn delete_data(
     Query(version_query): Query<VersionQuery>,
     State(shared_state): State<AppState>,
 ) -> Result<impl IntoResponse, CryptPassError> {
-    info!("Key Value data api request for key: {}", key);
+    info!("Key Value delete data api request for key: {}", key);
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
