@@ -2,6 +2,8 @@ mod api;
 mod perpetual;
 mod printer;
 
+pub(crate) mod correlation_id;
+
 use crate::{
     error::CryptPassError::{self, RouterError},
     init::AppState,
@@ -89,7 +91,8 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
         .with_state(shared_state)
         .fallback(|| async { StatusCode::NOT_FOUND })
         // .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::middleware::from_fn(printer::print_request_response))
+        .layer(middleware::from_fn(printer::print_request_response))
+        .layer(middleware::from_fn(correlation_id::set_correlation_id))
         .layer(CorsLayer::new().allow_headers(Any).allow_methods(Any).allow_origin(Any).expose_headers(Any));
 
     if let Some(server_tls) = server.clone().tls {
