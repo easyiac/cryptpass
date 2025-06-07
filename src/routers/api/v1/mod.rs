@@ -7,5 +7,4 @@ pub(super) async fn api() -> Router<crate::init::AppState> {
     Router::new()
         .nest("/users", users::api().await)
         .nest("/keyvalue", keyvalue::api().await)
-        .fallback(crate::routers::fallback::fallback_handler)
 }

@@ -17,5 +17,4 @@ pub(super) async fn api() -> Router<crate::init::AppState> {
         .route("/health", any(health::health_handler))
         .route("/unlock", post(unlock::unlock_handler))
         .route("/initialize", post(init::init_app_handler))
-        .fallback(crate::routers::fallback::fallback_handler)
 }

@@ -36,7 +36,6 @@ pub(crate) async fn api() -> Router<AppState> {
         .route("/list", get(list_all_keys))
         .route("/list/", get(list_all_keys))
         .route("/list/{*key}", get(list_selective_keys))
-        .fallback(crate::routers::fallback::fallback_handler)
 }
 
 #[utoipa::path(
