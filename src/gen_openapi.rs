@@ -9,17 +9,17 @@ use std::{fs, path::Path};
 use utoipa::OpenApi;
 
 fn main() {
-    let path = "./openapi.yaml";
+    let path = "./docs/openapi.yaml";
     println!("Deleting old openapi.yaml at {}", path);
 
     if Path::new(path).exists() {
         if let Err(e) = fs::remove_file(path) {
             eprintln!("Failed to delete file: {}", e);
         } else {
-            println!("File deleted.");
+            println!("File deleted. {}", path);
         }
     } else {
-        println!("File does not exist.");
+        println!("File does not exist. {}", path);
     }
 
     println!("Generating openapi.json at {}", path);
