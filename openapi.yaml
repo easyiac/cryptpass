@@ -5,7 +5,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.0.19
+  version: 1.0.21
 servers:
 - url: http://127.0.0.1:8088
   description: Local server
@@ -484,24 +484,6 @@ components:
           - 'null'
         error:
           type: string
-    DataValue:
-      oneOf:
-      - type: object
-        required:
-        - Object
-        properties:
-          Object:
-            type: object
-            additionalProperties: {}
-            propertyNames:
-              type: string
-      - type: object
-        required:
-        - Array
-        properties:
-          Array:
-            type: array
-            items: {}
     Health:
       type: object
       required:
@@ -551,8 +533,7 @@ components:
       required:
       - data
       properties:
-        data:
-          $ref: '#/components/schemas/DataValue'
+        data: {}
     KeyValueList:
       type: object
       required:

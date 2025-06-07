@@ -13,7 +13,7 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::Value;
 use tracing::info;
 use utoipa::{IntoParams, ToSchema};
 
@@ -23,14 +23,8 @@ pub(crate) struct VersionQuery {
 }
 
 #[derive(Deserialize, Serialize, ToSchema, Debug, Clone)]
-pub(crate) enum DataValue {
-    Object(Map<String, Value>),
-    Array(Vec<Value>),
-}
-
-#[derive(Deserialize, Serialize, ToSchema, Debug, Clone)]
 pub(crate) struct KeyValueData {
-    data: DataValue,
+    data: Value,
 }
 
 pub(crate) async fn api() -> Router<AppState> {
@@ -83,7 +77,7 @@ pub(crate) async fn get_data(
         Ok((
             StatusCode::OK,
             Json(KeyValueData {
-                data: serde_json::from_str::<DataValue>(value.clone().as_str())
+                data: serde_json::from_str::<Value>(value.clone().as_str())
                     .map_err(|ex| InternalServerError(format!("Error parsing JSON: {}", ex)))?,
             }),
         ))
