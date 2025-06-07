@@ -7,6 +7,9 @@ use std::fmt::Display;
 use tracing::warn;
 use utoipa::ToSchema;
 
+// Export the macros module
+pub mod macros;
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub(crate) struct CryptPassErrorDetails {
     pub(crate) error: String,
