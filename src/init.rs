@@ -1,6 +1,5 @@
-use crate::error::CryptPassError::ApplicationNotInitialized;
 use crate::{
-    error::CryptPassError::{self, BadRequest, InternalServerError},
+    error::CryptPassError::{self, ApplicationNotInitialized, BadRequest, InternalServerError},
     physical::models::{Privilege, PrivilegeType, Role, RoleType, Users},
     services::{self, encryption::set_internal_encryption_key, get_settings, set_settings},
 };
