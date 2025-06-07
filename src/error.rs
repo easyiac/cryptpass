@@ -10,12 +10,21 @@ use utoipa::ToSchema;
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub(crate) struct CryptPassErrorDetails {
     pub(crate) error: String,
+    #[serde(rename = "correlation-id")]
     pub(crate) correlation_id: Option<String>,
+    #[serde(rename = "caused-by")]
+    pub(crate) caused_by: Option<String>,
 }
 
 impl Display for CryptPassErrorDetails {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Error: {} - {}", self.error, self.correlation_id.clone().unwrap_or("No Correlation ID".to_string()))
+        write!(
+            f,
+            "Error: {} - {}, Caused By: {}.",
+            self.error,
+            self.correlation_id.clone().unwrap_or("No Correlation ID".to_string()),
+            self.caused_by.clone().unwrap_or("No Caused By".to_string())
+        )
     }
 }
 
@@ -57,7 +66,7 @@ impl IntoResponse for CryptPassError {
                 (StatusCode::INTERNAL_SERVER_ERROR, axum::Json(ex)).into_response()
             }
             CryptPassError::Unauthorized(ex) => {
-                warn!("Unauthorized: {}.",  ex);
+                warn!("Unauthorized: {}.", ex);
                 (StatusCode::UNAUTHORIZED, axum::Json(ex)).into_response()
             }
             CryptPassError::MethodNotAllowed(ex) => {

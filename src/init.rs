@@ -1,3 +1,4 @@
+use crate::error::CryptPassErrorDetails;
 use crate::{
     error::CryptPassError::{self, ApplicationNotInitialized, BadRequest, InternalServerError},
     physical::models::{Privilege, PrivilegeType, Role, RoleType, Users},
@@ -266,6 +267,7 @@ pub(crate) struct InternalEncryptionKeyDetails {
 
 pub(crate) fn unlock_app(
     unlock_details: UnlockDetails,
+    correlation_id: Option<String>,
     conn: &mut SqliteConnection,
 ) -> Result<InternalEncryptionKeyDetails, CryptPassError> {
     info!("Initializing unlock");
@@ -276,21 +278,38 @@ pub(crate) fn unlock_app(
         Some(existing_internal_encryption_key_str) => {
             info!("Internal encryption key exists");
             let existing_internal_encryption_key: InternalEncryptionKeyDetails =
-                serde_json::from_str(&existing_internal_encryption_key_str.value)
-                    .map_err(|ex| BadRequest(format!("Failed to parse internal encryption key: {}", ex)))?;
+                serde_json::from_str(&existing_internal_encryption_key_str.value).map_err(|ex| {
+                    BadRequest(CryptPassErrorDetails {
+                        correlation_id: correlation_id.clone(),
+                        error: "Failed to parse internal encryption key".to_string(),
+                        caused_by: Some(ex.to_string()),
+                    })
+                })?;
             if existing_internal_encryption_key.encryptor_hash != master_key_hash {
-                return Err(BadRequest("Internal encryption key is encrypted with a different master key".to_string()));
+                return Err(BadRequest(CryptPassErrorDetails {
+                    correlation_id,
+                    error: "Internal encryption key is encrypted with a different master key".to_string(),
+                    caused_by: None,
+                }));
             }
             let internal_encryption_key =
                 crate::utils::decrypt(&master_key, &existing_internal_encryption_key.encrypted_key)?;
             let internal_encryption_key_hash = crate::utils::hash(&internal_encryption_key);
             if internal_encryption_key_hash != existing_internal_encryption_key.hash {
-                return Err(BadRequest("Internal encryption key hash does not match existing key hash".to_string()));
+                return Err(BadRequest(CryptPassErrorDetails {
+                    correlation_id,
+                    error: "Internal encryption key hash does not match existing key hash".to_string(),
+                    caused_by: None,
+                }));
             }
             internal_encryption_key
         }
         None => {
-            return Err(ApplicationNotInitialized);
+            return Err(ApplicationNotInitialized(CryptPassErrorDetails {
+                correlation_id,
+                error: "Internal encryption key does not exist".to_string(),
+                caused_by: None,
+            }));
         }
     };
     let internal_enc_key_settings = InternalEncryptionKeyDetails {
@@ -303,19 +322,25 @@ pub(crate) fn unlock_app(
 
     set_internal_encryption_key(internal_encryption_key, internal_enc_key_settings.clone().hash)?;
 
-    create_root_user(conn)?;
+    create_root_user(correlation_id, conn)?;
 
     Ok(internal_enc_key_settings)
 }
 
-fn create_root_user(conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
+fn create_root_user(correlation_id: Option<String>, conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
     info!("Creating root user");
     let configuration = CRYPTPASS_CONFIG_INSTANCE.get().expect("Configuration not initialized.");
     let is_new_root_user;
     let mut roles = Vec::new();
     let current_epoch = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map_err(|ex| InternalServerError(format!("Failed to get current epoch: {}", ex)))?
+        .map_err(|ex| {
+            InternalServerError(CryptPassErrorDetails {
+                correlation_id,
+                error: "Failed to get current epoch".to_string(),
+                caused_by: Some(ex.to_string()),
+            })
+        })?
         .as_millis() as i64;
     roles.push(Role { name: RoleType::ADMIN, privileges: vec![Privilege { name: PrivilegeType::SUDO }] });
     let root_user_option = services::users::get_user("root", conn)?;
@@ -387,11 +412,19 @@ pub(crate) struct ApplicationInitializationDetails {
     pub(crate) master_key: String,
 }
 
-pub(crate) fn init_app(conn: &mut SqliteConnection) -> Result<ApplicationInitializationDetails, CryptPassError> {
+pub(crate) fn init_app(
+    correlation_id: Option<String>,
+    conn: &mut SqliteConnection,
+) -> Result<ApplicationInitializationDetails, CryptPassError> {
     info!("Initializing application");
     let existing_internal_encryption_key_encrypted_str = get_settings("INTERNAL_ENCRYPTION_KEY_ENCRYPTED", conn)?;
     if existing_internal_encryption_key_encrypted_str.is_some() {
-        return Err(BadRequest("Application already initialized".to_string()));
+        // return Err(BadRequest("Application already initialized".to_string()));
+        return Err(BadRequest(CryptPassErrorDetails {
+            correlation_id,
+            error: "Application already initialized".to_string(),
+            caused_by: None,
+        }));
     }
     let master_key = crate::utils::generate_key();
     let master_key_hash = crate::utils::hash(&master_key);
@@ -408,8 +441,13 @@ pub(crate) fn init_app(conn: &mut SqliteConnection) -> Result<ApplicationInitial
         encryptor_hash: master_key_hash,
     };
 
-    let internal_enc_key_settings_str = serde_json::to_string(&internal_enc_key_settings)
-        .map_err(|ex| BadRequest(format!("Failed to serialize internal encryption key: {}", ex)))?;
+    let internal_enc_key_settings_str = serde_json::to_string(&internal_enc_key_settings).map_err(|ex| {
+        BadRequest(CryptPassErrorDetails {
+            correlation_id,
+            error: "Failed to serialize internal encryption key".to_string(),
+            caused_by: Some(ex.to_string()),
+        })
+    })?;
 
     set_settings("INTERNAL_ENCRYPTION_KEY_ENCRYPTED", internal_enc_key_settings_str.as_ref(), conn)?;
 
