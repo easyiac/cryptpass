@@ -20,6 +20,8 @@ authentication and authorization.
 - [Configuration](docs/Configuration.md)
 - [OpenAPI](docs/OpenAPI.yaml)
 - [Development](docs/Development.md)
+- Concepts:
+  - [Initialize and Unlock](docs/Concepts/Initialize_and_Unlock.md)
 
 ## Security Considerations
 
