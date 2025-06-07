@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 #[derive(Clone)]
 pub(crate) struct CorrelationId {
+    #[allow(dead_code)]
     pub(crate) correlation_id: String,
 }
 
