@@ -4,6 +4,16 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Queryable, Insertable, Selectable, Debug, Identifiable)]
+#[diesel(primary_key(key_hash, encryptor_hash))]
+#[diesel(table_name = crate::physical::schema::encryption_keys_table)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub(crate) struct EncryptionKey {
+    pub(crate) encrypted_key: String,
+    pub(crate) key_hash: String,
+    pub(crate) encryptor_hash: String,
+}
+
+#[derive(Queryable, Insertable, Selectable, Debug, Identifiable)]
 #[diesel(table_name = crate::physical::schema::app_settings_table)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[diesel(primary_key(settings))]
@@ -11,16 +21,6 @@ pub(crate) struct AppSettings {
     pub(crate) settings: String,
     pub(crate) value: String,
     pub(crate) last_updated_at: i64,
-}
-
-#[derive(Queryable, Insertable, Selectable, Debug, Identifiable)]
-#[diesel(primary_key(encryption_key_hash))]
-#[diesel(table_name = crate::physical::schema::encryption_keys_table)]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-pub(crate) struct EncryptionKey {
-    pub(crate) encrypted_encryption_key: String,
-    pub(crate) encryption_key_hash: String,
-    pub(crate) encryptor_key_hash: String,
 }
 
 #[derive(Queryable, Insertable, Selectable, Debug, Identifiable, Clone, Serialize, ToSchema)]
@@ -33,6 +33,7 @@ pub(crate) struct KeyValue {
     pub(crate) version: i32,
     pub(crate) deleted: bool,
     pub(crate) last_updated_at: i64,
+    pub(crate) encryptor_hash: String,
 }
 
 #[derive(Queryable, Insertable, Selectable, Debug, Identifiable, Clone, AsChangeset)]
@@ -48,7 +49,8 @@ pub(crate) struct UserTable {
     pub(crate) last_login: i64,
     pub(crate) locked: bool,
     pub(crate) enabled: bool,
-    pub(crate) api_token_jwt_secret_b64_encrypted: String,
+    pub(crate) encryptor_hash: String,
+    pub(crate) jwt_secret_b64_encrypted: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
@@ -89,7 +91,9 @@ pub(crate) struct Users {
     pub(crate) locked: bool,
     pub(crate) enabled: bool,
     #[serde(skip)]
-    pub(crate) api_token_jwt_secret_b64_encrypted: String,
+    pub(crate) encryptor_hash: String,
+    #[serde(skip)]
+    pub(crate) jwt_secret_b64_encrypted: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) password: Option<String>,
 }
@@ -106,7 +110,8 @@ impl Users {
             last_login: self.last_login,
             locked: self.locked,
             enabled: self.enabled,
-            api_token_jwt_secret_b64_encrypted: self.api_token_jwt_secret_b64_encrypted.clone(),
+            encryptor_hash: self.encryptor_hash.clone(),
+            jwt_secret_b64_encrypted: self.jwt_secret_b64_encrypted.clone(),
         };
         Ok(ut)
     }
@@ -124,7 +129,8 @@ impl UserTable {
             last_login: self.last_login,
             locked: self.locked,
             enabled: self.enabled,
-            api_token_jwt_secret_b64_encrypted: self.api_token_jwt_secret_b64_encrypted.clone(),
+            encryptor_hash: self.encryptor_hash.clone(),
+            jwt_secret_b64_encrypted: self.jwt_secret_b64_encrypted.clone(),
             password: None,
         };
         Ok(tu)

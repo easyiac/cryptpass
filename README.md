@@ -1,6 +1,8 @@
 # CryptPass
 
-CryptPass is a secure key-value store with encryption capabilities, designed for managing sensitive data in a home lab environment. It provides a RESTful API for storing, retrieving, and managing encrypted key-value pairs with user authentication and authorization.
+CryptPass is a secure key-value store with encryption capabilities, designed for managing sensitive data in a home lab
+environment. It provides a RESTful API for storing, retrieving, and managing encrypted key-value pairs with user
+authentication and authorization.
 
 ## Features
 
@@ -36,26 +38,45 @@ cargo build --release
 ./target/release/cryptpass
 ```
 
+#### For Cross compilation: ARM64
+
+Install [AArch64 GNU/Linux target (aarch64-none-linux-gnu)](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads).
+
+Add the following to your Cargo.toml, Make sure to change the path and version according to your installation:
+```toml
+[target.aarch64-unknown-linux-gnu]
+linker = "C:\\Program Files (x86)\\Arm GNU Toolchain aarch64-none-linux-gnu\\14.2 rel1\\bin\\aarch64-none-linux-gnu-gcc"
+```
+
+```bash
+rustup target add aarch64-unknown-linux-gnu
+cargo build --release --target aarch64-unknown-linux-gnu --bin cryptpass
+```
+
 ## Configuration
 
-CryptPass can be configured using a JSON configuration file. By default, it looks for a configuration file at `/etc/cryptpass/config.json`, but you can specify a different location using the `CRYPTPASS_CONFIG` environment variable.
+CryptPass can be configured using a JSON configuration file. By default, it looks for a configuration file at
+`/etc/cryptpass/config.json`, but you can specify a different location using the `CRYPTPASS_CONFIG` environment
+variable.
 
 Example configuration:
 
 ```json
 {
     "server": {
-        "port": "Port, type: int, default: `8088`",
-        "root-password": "Root password, If not present in first run on the first run, it will be generated, and printed in the log on INFO level",
-        "auth-header-key": "Auth header key, default is `X-CRYPTPASS-KEY`",
+        "port": 8088,
+        "root-password": "your-root-password",
+        "auth-header-key": "X-CRYPTPASS-KEY",
         "tls": {
-            "key-pem": "PEM key, if missing then server will run in http",
-            "cert-pem": "PEM cert, if missing then server will run in http"
+            "key-pem": "/path/to/key.pem",
+            "cert-pem": "/path/to/cert.pem"
         },
         "physical": {
-            "master-encryption-key": "Master encryption key, Recommended: Set it via api endpoint",
+            "unlock-details": {
+                "master-encryption-key": "your-master-encryption-key"
+            },
             "config": {
-                "data-dir": "Path to data directory, Default is `/var/lib/cryptpass`"
+                "data-dir": "/var/lib/cryptpass"
             }
         }
     }
@@ -64,16 +85,16 @@ Example configuration:
 
 ### Configuration Options
 
-| Option                                  | Description                      | Default                        |
-|-----------------------------------------|----------------------------------|--------------------------------|
-| `server.port`                           | Port to listen on                | 8088                           |
-| `server.root_password`                  | Password for the root user       | Random (logged on first start) |
-| `server.auth_header_key`                | HTTP header for authentication   | X-CRYPTPASS-KEY                |
-| `server.tls`                            | TLS configuration (optional)     | None                           |
-| `server.tls.key-pem`                    | Path to PEM key file             | None (use HTTP)                |
-| `server.tls.cert-pem`                   | Path to PEM certificate file     | None (use HTTP)                |
-| `server.physical.master-encryption-key` | Master encryption key (optional) | None (use /unlock endpoint)    |
-| `server.physical.config.data-dir`       | Directory for data storage       | /var/lib/cryptpass             |
+| Option                                                 | Description                             | Default                        |
+|--------------------------------------------------------|-----------------------------------------|--------------------------------|
+| `server.port`                                          | Port to listen on                       | 8088                           |
+| `server.root_password`                                 | Password for the root user              | Random (logged on first start) |
+| `server.auth_header_key`                               | HTTP header for authentication          | X-CRYPTPASS-KEY                |
+| `server.tls`                                           | TLS configuration (optional)            | None                           |
+| `server.tls.key-pem`                                   | Path to PEM key file or content         | None (use HTTP)                |
+| `server.tls.cert-pem`                                  | Path to PEM certificate file or content | None (use HTTP)                |
+| `server.physical.unlock-details.master-encryption-key` | Master encryption key for unlocking     | None (set at runtime)          |
+| `server.physical.config.data-dir`                      | Directory for data storage              | /var/lib/cryptpass             |
 
 ### Environment Variables
 
@@ -105,12 +126,12 @@ CryptPass provides the following API endpoints:
 
 #### Authentication
 
-- `POST /login` - Login with username and password
-- `POST /unlock` - Unlock with master key
+- `POST /perpetual/login` - Login with username and password
+- `POST /perpetual/unlock` - Unlock with master key
 
 #### Health Check
 
-- `GET /health` - Check server health
+- `GET /perpetual/health` - Check server health
 
 ### Example Usage
 
@@ -152,10 +173,8 @@ Response:
 ```json
 {
     "data": {
-        "Object": {
-            "username": "admin",
-            "password": "secret123"
-        }
+        "username": "admin",
+        "password": "secret123"
     }
 }
 ```
@@ -163,7 +182,8 @@ Response:
 ## Security Considerations
 
 - The master encryption key should be kept secure and not included in the configuration file in production
-- Use the `/unlock` endpoint to set the master encryption key at runtime
+- Use the `/perpetual/initialize` endpoint to set the master encryption key on the first run
+- Use the `/perpetual/unlock` endpoint to set the master encryption key at runtime
 - Always use TLS in production environments
 - Change the default root password after the first login
 

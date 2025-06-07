@@ -49,6 +49,7 @@ pub(crate) async fn api() -> Router<AppState> {
     get,
     path = "/api/v1/keyvalue/data/{key}",
     tag = "Key-Value",
+    summary = "Read a key",
     description = "Read a key",
     params(
         ("key" = String, Path, description = "Key to read"),
@@ -95,6 +96,7 @@ pub(crate) async fn get_data(
     put,
     path = "/api/v1/keyvalue/data/{key}",
     tag = "Key-Value",
+    summary = "Update a key",
     params(
         ("key" = String, Path, description = "Key to write"),
         VersionQuery,
@@ -140,6 +142,7 @@ pub(crate) async fn update_data(
     delete,
     path = "/api/v1/keyvalue/data/{key}",
     tag = "Key-Value",
+    summary = "Delete a key",
     description = "Delete a key",
     params(
         ("key" = String, Path, description = "Key to delete"),
@@ -173,6 +176,7 @@ pub(crate) async fn delete_data(
     get,
     path = "/api/v1/keyvalue/details/{key}",
     tag = "Key-Value",
+    summary = "Get key metadata",
     description = "Get key metadata",
     params(
         ("key" = String, Path, description = "Key to read"),
@@ -218,6 +222,7 @@ pub(crate) struct KeyValueList {
     get,
     path = "/api/v1/keyvalue/list/{key}",
     tag = "Key-Value",
+    summary = "List nested keys",
     description = "List nested keys",
     params(
         ("key" = String, Path, description = "Key to read"),
@@ -243,6 +248,7 @@ async fn list_selective_keys(
     get,
     path = "/api/v1/keyvalue/list",
     tag = "Key-Value",
+    summary = "List all the keys",
     description = "List all the keys",
     responses(
         (status = 200, description = "List of keys", body = KeyValueList),

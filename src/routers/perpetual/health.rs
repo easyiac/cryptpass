@@ -8,8 +8,9 @@ pub(crate) struct Health {
 }
 #[utoipa::path(
     get,
-    path = "/health",
+    path = "/perpetual/health",
     tag = "Perpetual",
+    summary = "Application health check",
     description = "Application health check results",
     responses(
         (status = 200, description = "Health Response", body = Health),

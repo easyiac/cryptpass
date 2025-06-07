@@ -1,7 +1,8 @@
+use crate::error::CryptPassError::ApplicationNotInitialized;
 use crate::{
     error::CryptPassError::{self, BadRequest, InternalServerError},
     physical::models::{Privilege, PrivilegeType, Role, RoleType, Users},
-    services::{self, encryption::INTERNAL_ENCRYPTION_KEY, get_settings, set_settings},
+    services::{self, encryption::set_internal_encryption_key, get_settings, set_settings},
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use deadpool_diesel::sqlite::Pool;
@@ -65,10 +66,16 @@ fn default_physical_config() -> PhysicalConfig {
     PhysicalConfig { data_dir: default_data_dir() }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
+pub(crate) struct UnlockDetails {
+    #[serde(rename = "master-encryption-key")]
+    pub(crate) master_encryption_key: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct Physical {
-    #[serde(rename = "master-encryption-key")]
-    pub(crate) master_encryption_key: Option<String>,
+    #[serde(rename = "unlock-details")]
+    pub(crate) unlock_details: Option<UnlockDetails>,
 
     #[serde(default = "default_physical_config")]
     pub(crate) config: PhysicalConfig,
@@ -110,7 +117,7 @@ pub(crate) struct Server {
 }
 
 fn default_physical() -> Physical {
-    Physical { master_encryption_key: None, config: default_physical_config() }
+    Physical { unlock_details: None, config: default_physical_config() }
 }
 
 fn default_server() -> Server {
@@ -132,24 +139,14 @@ pub(crate) struct Configuration {
 pub(crate) fn load_configuration() -> Configuration {
     let default_file = "/etc/cryptpass/config.json";
 
-    let mut configuration: String = std::env::var("CRYPTPASS_CONFIG").unwrap_or_else(|ex| {
+    let configuration: String = std::env::var("CRYPTPASS_CONFIG").unwrap_or_else(|ex| {
         info!("Environment variable CRYPTPASS_CONFIG not set, error: {}", ex);
         info!("Using default configuration file: {}", default_file);
         default_file.to_string()
     });
 
-    if Path::new(configuration.clone().as_str()).exists() && !Path::new(configuration.clone().as_str()).is_file() {
-        panic!("Configuration path exists but is not a regular file: {}", configuration);
-    }
-
-    if Path::new(configuration.clone().as_str()).exists() {
-        info!("Reading configuration file: {}", configuration);
-        configuration = fs::read_to_string(configuration.clone()).unwrap_or_else(|ex| {
-            panic!("Provided configuration {} is a file but could not be read, error: {}", configuration, ex)
-        });
-    } else {
-        info!("Provided configuration is not a file, assuming it is a JSON string");
-    }
+    let configuration =
+        crate::utils::file_or_string(configuration.as_str()).expect("Failed to read configuration file");
 
     let configuration: Configuration = serde_json::from_str(configuration.as_str())
         .unwrap_or_else(|ex| panic!("Failed to parse configuration file: {}, error: {}", configuration, ex));
@@ -268,14 +265,14 @@ pub(crate) struct InternalEncryptionKeyDetails {
     pub(crate) encryptor_hash: String,
 }
 
-pub(crate) fn init_unlock(
-    master_key: String,
+pub(crate) fn unlock_app(
+    unlock_details: UnlockDetails,
     conn: &mut SqliteConnection,
 ) -> Result<InternalEncryptionKeyDetails, CryptPassError> {
     info!("Initializing unlock");
+    let master_key = crate::utils::file_or_string(unlock_details.master_encryption_key.as_str())?;
     let master_key_hash = crate::utils::hash(&master_key);
-    let existing_internal_encryption_key_encrypted_str =
-        get_settings("INTERNAL_ENCRYPTION_KEY_ENCRYPTED".to_string(), conn)?;
+    let existing_internal_encryption_key_encrypted_str = get_settings("INTERNAL_ENCRYPTION_KEY_ENCRYPTED", conn)?;
     let internal_encryption_key = match existing_internal_encryption_key_encrypted_str {
         Some(existing_internal_encryption_key_str) => {
             info!("Internal encryption key exists");
@@ -294,10 +291,7 @@ pub(crate) fn init_unlock(
             internal_encryption_key
         }
         None => {
-            info!("Internal encryption key does not exist, generating new key");
-            let new_key = crate::utils::generate_key();
-            info!("New internal encryption key generated, hash: {}", crate::utils::hash(new_key.as_str()));
-            new_key
+            return Err(ApplicationNotInitialized);
         }
     };
     let internal_enc_key_settings = InternalEncryptionKeyDetails {
@@ -306,22 +300,9 @@ pub(crate) fn init_unlock(
         encryptor_hash: master_key_hash,
     };
 
-    let internal_enc_key_settings_str = serde_json::to_string(&internal_enc_key_settings)
-        .map_err(|ex| BadRequest(format!("Failed to serialize internal encryption key: {}", ex)))?;
-
-    set_settings("INTERNAL_ENCRYPTION_KEY_ENCRYPTED".to_string(), internal_enc_key_settings_str, conn)?;
-
     info!("Setting internal encryption key, hash: {}", internal_enc_key_settings.hash);
-    INTERNAL_ENCRYPTION_KEY
-        .set({
-            services::encryption::InternalEncryptionKey {
-                key: internal_encryption_key,
-                hash: internal_enc_key_settings.clone().hash,
-            }
-        })
-        .map_err(|ex| {
-            BadRequest(format!("Failed to set internal encryption key, Existing key hash: {}", ex.hash.to_string()))
-        })?;
+
+    set_internal_encryption_key(internal_encryption_key, internal_enc_key_settings.clone().hash)?;
 
     create_root_user(conn)?;
 
@@ -352,6 +333,8 @@ fn create_root_user(conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
             let mut api_token_jwt_secret = [0u8; 32];
             rng.fill(&mut api_token_jwt_secret);
             let api_token_jwt_secret_base64 = BASE64_STANDARD.encode(api_token_jwt_secret);
+            let api_token_jwt_secret_b64_encrypted =
+                services::encryption::encrypt(api_token_jwt_secret_base64.as_ref(), conn)?;
             Users {
                 username: "root".to_string(),
                 email: None,
@@ -361,10 +344,8 @@ fn create_root_user(conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
                 locked: false,
                 roles: roles.clone(),
                 enabled: true,
-                api_token_jwt_secret_b64_encrypted: services::encryption::encrypt(
-                    api_token_jwt_secret_base64.as_ref(),
-                    conn,
-                )?,
+                jwt_secret_b64_encrypted: api_token_jwt_secret_b64_encrypted.encrypted_value,
+                encryptor_hash: api_token_jwt_secret_b64_encrypted.encryption_key_hash,
                 password: None,
             }
         }
@@ -400,4 +381,38 @@ fn create_root_user(conn: &mut SqliteConnection) -> Result<(), CryptPassError> {
     }
 
     Ok(())
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
+pub(crate) struct ApplicationInitializationDetails {
+    pub(crate) master_key: String,
+}
+
+pub(crate) fn init_app(conn: &mut SqliteConnection) -> Result<ApplicationInitializationDetails, CryptPassError> {
+    info!("Initializing application");
+    let existing_internal_encryption_key_encrypted_str = get_settings("INTERNAL_ENCRYPTION_KEY_ENCRYPTED", conn)?;
+    if existing_internal_encryption_key_encrypted_str.is_some() {
+        return Err(BadRequest("Application already initialized".to_string()));
+    }
+    let master_key = crate::utils::generate_key();
+    let master_key_hash = crate::utils::hash(&master_key);
+    info!("Master key generated, hash: {}", master_key_hash);
+
+    let internal_encryption_key = crate::utils::generate_key();
+    let internal_encryption_key_encrypted = crate::utils::encrypt(&master_key.clone(), &internal_encryption_key)?;
+    let internal_encryption_key_hash = crate::utils::hash(&internal_encryption_key);
+    info!("Internal encryption key generated, hash: {}", internal_encryption_key_hash);
+
+    let internal_enc_key_settings = InternalEncryptionKeyDetails {
+        encrypted_key: internal_encryption_key_encrypted,
+        hash: internal_encryption_key_hash,
+        encryptor_hash: master_key_hash,
+    };
+
+    let internal_enc_key_settings_str = serde_json::to_string(&internal_enc_key_settings)
+        .map_err(|ex| BadRequest(format!("Failed to serialize internal encryption key: {}", ex)))?;
+
+    set_settings("INTERNAL_ENCRYPTION_KEY_ENCRYPTED", internal_enc_key_settings_str.as_ref(), conn)?;
+
+    Ok(ApplicationInitializationDetails { master_key })
 }

@@ -28,6 +28,8 @@ pub(super) async fn api() -> Router<crate::init::AppState> {
     get,
     path = "/api/v1/users/user/{username}",
     tag = "Users",
+    summary = "Get user",
+    description = "Get user by username",
     params(
         ("username" = String, Path, description = "Username of the user to get"),
     ),
@@ -61,6 +63,8 @@ async fn get_user(
     put,
     path = "/api/v1/users/user/{username}",
     tag = "Users",
+    summary = "Create or update user",
+    description = "Create or update user by username",
     params(
         ("username" = String, Path, description = "Username of the user to update"),
     ),
@@ -108,12 +112,12 @@ async fn create_update_user(
             let mut api_token_jwt_secret = [0u8; 32];
             rand::rng().fill(&mut api_token_jwt_secret);
             let api_token_jwt_secret_base64 = BASE64_STANDARD.encode(api_token_jwt_secret);
-            let api_token_jwt_secret_b64_encrypted = conn
+            let jwt_secret_b64_encrypted = conn
                 .interact(move |conn| {
                     crate::services::encryption::encrypt(api_token_jwt_secret_base64.clone().as_ref(), conn)
                 })
                 .await
-                .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
+                .map_err(|ex| InternalServerError(format!("Error interacting with database: {}", ex)))??;
             is_new_user = true;
             Users {
                 username: user_err,
@@ -124,7 +128,8 @@ async fn create_update_user(
                 last_login: 0i64,
                 locked: false,
                 enabled: true,
-                api_token_jwt_secret_b64_encrypted,
+                jwt_secret_b64_encrypted: jwt_secret_b64_encrypted.encrypted_value,
+                encryptor_hash: jwt_secret_b64_encrypted.encryption_key_hash,
                 password: None,
             }
         }

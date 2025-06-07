@@ -3,39 +3,38 @@ use crate::{
         CryptPassError::{self, InternalServerError},
         CryptPassErrorDetails,
     },
-    init::{InternalEncryptionKeyDetails, UnlockDetails},
+    init::ApplicationInitializationDetails,
 };
 use axum::{extract::State, http::StatusCode, Json};
 
 #[utoipa::path(
     post,
-    path = "/perpetual/unlock",
+    path = "/perpetual/initialize",
     tag = "Perpetual",
-    summary = "Unlocks the application",
-    description = "Unlocks the application with the provided master key",
+    summary = "Initialize the application",
+    description = "Initialize the application",
     responses(
         (
-            status = 200,
+            status = 201,
             description = "Internal encryption key details, Not the actual key",
-            body = InternalEncryptionKeyDetails,
+            body = ApplicationInitializationDetails,
         ),
+        (status = 400, description = "Bad request", body = CryptPassErrorDetails),
         (status = 500, description = "Internal server error", body = CryptPassErrorDetails),
     ),
     security(),
 )]
-pub(crate) async fn unlock_handler(
+pub(crate) async fn init_app_handler(
     State(shared_state): State<crate::init::AppState>,
-    body: Json<UnlockDetails>,
-) -> Result<(StatusCode, Json<InternalEncryptionKeyDetails>), CryptPassError> {
-    let unlock_details = body.0;
+) -> Result<(StatusCode, Json<ApplicationInitializationDetails>), CryptPassError> {
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|ex| InternalServerError(format!("Error getting connection from pool: {}", ex)))?;
 
-    let set_key = conn
-        .interact(move |conn| crate::init::unlock_app(unlock_details, conn))
+    let master_key = conn
+        .interact(move |conn| crate::init::init_app(conn))
         .await
         .map_err(|ex| InternalServerError(format!("Error interacting with database: {}", ex)))??;
 
-    Ok((StatusCode::OK, Json(set_key)))
+    Ok((StatusCode::CREATED, Json(master_key)))
 }

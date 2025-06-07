@@ -1,4 +1,16 @@
 diesel::table! {
+    #[sql_name = "encryption_keys_t"]
+    encryption_keys_table (key_hash, encryptor_hash) {
+        #[sql_name = "encrypted_key_c"]
+        encrypted_key -> Text,
+        #[sql_name = "key_hash_c"]
+        key_hash -> Text,
+        #[sql_name = "encryptor_hash_c"]
+        encryptor_hash -> Text,
+    }
+}
+
+diesel::table! {
     #[sql_name = "app_settings_t"]
     app_settings_table (settings) {
         #[sql_name = "settings_c"]
@@ -7,18 +19,6 @@ diesel::table! {
         value -> Text,
         #[sql_name = "last_updated_at_c"]
         last_updated_at -> BigInt,
-    }
-}
-
-diesel::table! {
-    #[sql_name = "encryption_keys_t"]
-    encryption_keys_table (encryption_key_hash, encryptor_key_hash) {
-        #[sql_name = "encrypted_encryption_key_c"]
-        encrypted_encryption_key -> Text,
-        #[sql_name = "encryption_key_hash_c"]
-        encryption_key_hash -> Text,
-        #[sql_name = "encryptor_key_hash_c"]
-        encryptor_key_hash -> Text,
     }
 }
 
@@ -35,6 +35,8 @@ diesel::table! {
         version -> Integer,
         #[sql_name = "last_updated_at_c"]
         last_updated_at -> BigInt,
+        #[sql_name = "encryptor_hash_c"]
+        encryptor_hash -> Text,
     }
 }
 
@@ -56,8 +58,9 @@ diesel::table! {
         #[sql_name = "locked_c"]
         locked -> Bool,
         #[sql_name = "enabled_c"]
-        enabled -> Bool,
-        #[sql_name = "api_token_jwt_secret_b64_encrypted_c"]
-        api_token_jwt_secret_b64_encrypted -> Text,
+        enabled -> Bool,   #[sql_name = "encryptor_hash_c"]
+        encryptor_hash -> Text,
+        #[sql_name = "jwt_secret_b64_encrypted_c"]
+        jwt_secret_b64_encrypted -> Text,
     }
 }

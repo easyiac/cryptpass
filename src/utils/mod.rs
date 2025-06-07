@@ -1,5 +1,7 @@
 use crate::error::CryptPassError::{self, InternalServerError};
+use std::path::Path;
 use time::{format_description::well_known::Rfc3339, OffsetDateTime, UtcOffset};
+use tracing::debug;
 
 pub(crate) mod aes256;
 pub(crate) mod sha256;
@@ -41,4 +43,14 @@ pub(crate) fn epoch_to_ist(epoch_ms: i128) -> Result<String, CryptPassError> {
     let ist_time = utc.to_offset(ist_offset);
 
     Ok(ist_time.format(&Rfc3339).map_err(|ex| InternalServerError(format!("Failed to format IST time: {}", ex)))?)
+}
+
+pub(crate) fn file_or_string(path: &str) -> Result<String, CryptPassError> {
+    if Path::new(path).exists() && Path::new(path).is_file() {
+        debug!("Reading file: {}", path);
+        return Ok(
+            std::fs::read_to_string(path).map_err(|ex| InternalServerError(format!("Failed to read file: {}", ex)))?
+        );
+    }
+    Ok(path.to_string())
 }

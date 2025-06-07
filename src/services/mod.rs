@@ -11,7 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::info;
 
 pub(crate) fn get_settings(
-    settings_key: String,
+    settings_key: &str,
     conn: &mut SqliteConnection,
 ) -> Result<Option<AppSettings>, CryptPassError> {
     let settings_val = crate::physical::schema::app_settings_table::dsl::app_settings_table
@@ -24,21 +24,17 @@ pub(crate) fn get_settings(
 }
 
 pub(crate) fn set_settings(
-    settings_key: String,
-    settings_value: String,
+    settings_key: &str,
+    settings_value: &str,
     conn: &mut SqliteConnection,
 ) -> Result<(), CryptPassError> {
     let current_epoch = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|ex| InternalServerError(format!("Error getting current epoch: {}", ex)))?
         .as_millis() as i64;
-    let existing_settings = get_settings(settings_key.clone(), conn)?;
+    let existing_settings = get_settings(settings_key, conn)?;
     if let Some(existing_settings) = existing_settings {
-        if existing_settings.value == settings_value {
-            return Ok(());
-        }
-
-        info!("Updating settings: {} = {} -> {}", settings_key, existing_settings.value, settings_value);
+        info!("Updating settings: {}", settings_key);
 
         diesel::update(
             crate::physical::schema::app_settings_table::dsl::app_settings_table.find(existing_settings.settings),
@@ -52,8 +48,11 @@ pub(crate) fn set_settings(
         Ok(())
     } else {
         info!("Inserting settings: {} = {}", settings_key, settings_value);
-        let new_settings =
-            AppSettings { settings: settings_key, value: settings_value, last_updated_at: current_epoch };
+        let new_settings = AppSettings {
+            settings: settings_key.to_string(),
+            value: settings_value.to_string(),
+            last_updated_at: current_epoch,
+        };
         diesel::insert_into(crate::physical::schema::app_settings_table::dsl::app_settings_table)
             .values(&new_settings)
             .execute(conn)

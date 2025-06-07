@@ -1,10 +1,9 @@
-use crate::utils::epoch_to_ist;
 use crate::{
     error::CryptPassError::{self, BadRequest, InternalServerError, Unauthorized},
     init::{AppState, CRYPTPASS_CONFIG_INSTANCE},
     routers::perpetual::auth::{get_jwt_secret, JWTClaims},
     services,
-    utils::match_hash,
+    utils::{epoch_to_ist, match_hash},
 };
 use axum::{
     extract::{ConnectInfo, Request, State},
@@ -37,11 +36,7 @@ pub(crate) async fn auth_layer(
 
     for (key, value) in request.headers().clone() {
         if key.is_some()
-            && (key
-                .as_ref()
-                .ok_or_else(|| CryptPassError::BadRequest("Bad auth header key".to_string()))?
-                .to_string()
-                .to_lowercase()
+            && (key.as_ref().ok_or_else(|| BadRequest("Bad auth header key".to_string()))?.to_string().to_lowercase()
                 == configuration.server.auth_header_key.to_lowercase())
         {
             let val_str = value.to_str().map_err(|ex| BadRequest(format!("Invalid auth header value: {}", ex)))?;
@@ -75,8 +70,7 @@ pub(crate) fn is_authorized(
     );
 
     // TODO: total fucking disaster, matching regexes is a disaster.
-    let public_uri_patterns =
-        vec!["^/health*", "^/api-docs/openapi.json", "^/favicon.ico", "^/unlock", "^/login", "^/swagger-ui"];
+    let public_uri_patterns = vec!["^/api-docs/openapi.json", "^/favicon.ico", "^/swagger-ui", "^/perpetual"];
     for pattern_str in public_uri_patterns {
         let regex = Regex::new(pattern_str).map_err(|e| {
             InternalServerError(format!("Invalid regex pattern '{}' in configuration: {}", pattern_str, e))
@@ -138,11 +132,8 @@ fn is_authorized_bearer(
         .duration_since(UNIX_EPOCH)
         .map_err(|ex| InternalServerError(format!("Error getting current epoch: {}", ex)))?
         .as_millis();
-
     if current_epoch > token.exp {
-        println!("token.exp {:?}", epoch_to_ist(token.exp as i128));
-        println!("current_epoch {:?}", epoch_to_ist(current_epoch as i128));
-        let msg = format!("JWT token expired at: {}", token.exp);
+        let msg = format!("JWT token expired at: {}", epoch_to_ist(token.exp as i128)?);
         warn!("Access denied for URI: {}, method: {}, origin: {}, reason: {}", uri, method, origin, msg);
         Err(Unauthorized(msg))?
     }

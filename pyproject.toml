@@ -4,7 +4,7 @@ version = "0.0.0" # Actual version is tracked in Cargo.toml
 description = ""
 authors = [{ name = "arpan", email = "arpan.rec@gmail.com" }]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = ["ansible (>=11.6.0)", "ansible-lint (>=25.5.0)"]
 
 [tool.poetry]

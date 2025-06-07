@@ -16,6 +16,7 @@ paths:
     get:
       tags:
       - Key-Value
+      summary: Read a key
       description: Read a key
       operationId: get_data
       parameters:
@@ -63,6 +64,7 @@ paths:
     put:
       tags:
       - Key-Value
+      summary: Update a key
       description: Update a key
       operationId: update_data
       parameters:
@@ -113,6 +115,7 @@ paths:
     delete:
       tags:
       - Key-Value
+      summary: Delete a key
       description: Delete a key
       operationId: delete_data
       parameters:
@@ -151,6 +154,7 @@ paths:
     get:
       tags:
       - Key-Value
+      summary: Get key metadata
       description: Get key metadata
       operationId: details
       parameters:
@@ -199,6 +203,7 @@ paths:
     get:
       tags:
       - Key-Value
+      summary: List all the keys
       description: List all the keys
       operationId: list_all_keys
       responses:
@@ -226,6 +231,7 @@ paths:
     get:
       tags:
       - Key-Value
+      summary: List nested keys
       description: List nested keys
       operationId: list_selective_keys
       parameters:
@@ -266,6 +272,8 @@ paths:
     get:
       tags:
       - Users
+      summary: Get user
+      description: Get user by username
       operationId: get_user
       parameters:
       - name: username
@@ -304,6 +312,8 @@ paths:
     put:
       tags:
       - Users
+      summary: Create or update user
+      description: Create or update user by username
       operationId: create_update_user
       parameters:
       - name: username
@@ -346,10 +356,11 @@ paths:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
       security:
       - cryptpass_auth_info: []
-  /health:
+  /perpetual/health:
     get:
       tags:
       - Perpetual
+      summary: Application health check
       description: Application health check results
       operationId: health_handler
       responses:
@@ -366,10 +377,38 @@ paths:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
       security: []
-  /login:
+  /perpetual/initialize:
     post:
       tags:
       - Perpetual
+      summary: Initialize the application
+      description: Initialize the application
+      operationId: init_app_handler
+      responses:
+        '201':
+          description: Internal encryption key details, Not the actual key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationInitializationDetails'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorDetails'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptPassErrorDetails'
+      security: []
+  /perpetual/login:
+    post:
+      tags:
+      - Perpetual
+      summary: Login
       description: Login endpoint for username and password authentication
       operationId: login_handler
       requestBody:
@@ -398,16 +437,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/CryptPassErrorDetails'
       security: []
-  /unlock:
+  /perpetual/unlock:
     post:
       tags:
       - Perpetual
+      summary: Unlocks the application
+      description: Unlocks the application with the provided master key
       operationId: unlock_handler
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UnlockRequest'
+              $ref: '#/components/schemas/UnlockDetails'
         required: true
       responses:
         '200':
@@ -425,6 +466,13 @@ paths:
       security: []
 components:
   schemas:
+    ApplicationInitializationDetails:
+      type: object
+      required:
+      - master_key
+      properties:
+        master_key:
+          type: string
     CryptPassErrorDetails:
       type: object
       required:
@@ -482,10 +530,13 @@ components:
       - version
       - deleted
       - last_updated_at
+      - encryptor_hash
       properties:
         deleted:
           type: boolean
         encrypted_value:
+          type: string
+        encryptor_hash:
           type: string
         key:
           type: string
@@ -562,12 +613,12 @@ components:
       enum:
       - ADMIN
       - USER
-    UnlockRequest:
+    UnlockDetails:
       type: object
       required:
-      - token
+      - master-encryption-key
       properties:
-        token:
+        master-encryption-key:
           type: string
     Users:
       type: object

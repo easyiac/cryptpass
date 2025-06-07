@@ -1,6 +1,6 @@
 [package]
 name = "cryptpass"
-version = "1.0.19"
+version = "1.0.20"
 edition = "2021"
 rust-version = "1.86.0"
 description = "Manage seed data for my home lab."
@@ -33,7 +33,7 @@ axum-server = { version = "0.7.2", features = [
 http-body-util = "0.1.3"
 uuid = { version = "1.17.0", features = ["v4"] }
 rand = "0.9.1"
-sha2 = { version = "0.10.9", features = ["asm"] }
+sha2 = { version = "0.10.9" } # , features = ["asm"]
 hex = "0.4.3"
 diesel = { version = "2.2.10", features = [
     "sqlite",

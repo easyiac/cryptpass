@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-version=$(cargo metadata --format-version=1 --no-deps | jq '.packages.[0].version' -c -r)
-rust_version=$(cargo metadata --format-version=1 --no-deps | jq '.packages.[0].rust_version' -c -r)
+version=$(cargo metadata --format-version=1 --no-deps | jq '.packages[0].version' -c -r)
+rust_version=$(cargo metadata --format-version=1 --no-deps | jq '.packages[0].rust_version' -c -r)
 docker buildx create --name cryptpass-builder --driver docker-container --bootstrap \
     --buildkitd-config buildkitd.toml || true
 

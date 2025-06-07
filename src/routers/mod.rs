@@ -7,11 +7,9 @@ use crate::{
     error::CryptPassError::{self, RouterError},
     init::AppState,
     init::CRYPTPASS_CONFIG_INSTANCE,
+    utils::file_or_string,
 };
-use axum::{
-    middleware,
-    routing::{any, post},
-};
+use axum::middleware;
 use axum_server::tls_rustls::RustlsConfig;
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
@@ -45,6 +43,7 @@ impl Modify for SecurityAddon {
         crate::routers::perpetual::health::health_handler,
         crate::routers::perpetual::auth::login::login_handler,
         crate::routers::perpetual::unlock::unlock_handler,
+        crate::routers::perpetual::init::init_app_handler,
         crate::routers::api::v1::users::get_user,
         crate::routers::api::v1::users::create_update_user,
         crate::routers::api::v1::keyvalue::get_data,
@@ -85,10 +84,8 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
         .merge(Redoc::with_url("/redoc", api.clone()))
         .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
         .merge(Scalar::with_url("/scalar", api))
-        .route("/login", post(perpetual::auth::login::login_handler))
-        .route("/health", any(perpetual::health::health_handler))
-        .route("/unlock", post(perpetual::unlock::unlock_handler))
-        .nest("/api", api::api(shared_state.clone()).await)
+        .nest("/perpetual", perpetual::api().await)
+        .nest("/api", api::api().await)
         .layer(middleware::from_fn_with_state(shared_state.clone(), perpetual::auth::layer::auth_layer))
         .with_state(shared_state)
         .fallback(fallback::fallback_handler)
@@ -97,9 +94,12 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
         .layer(CorsLayer::new().allow_headers(Any).allow_methods(Any).allow_origin(Any).expose_headers(Any));
 
     if let Some(server_tls) = server.clone().tls {
-        let config = RustlsConfig::from_pem(server_tls.ssl_cert_pem.into_bytes(), server_tls.ssl_key_pem.into_bytes())
-            .await
-            .map_err(|ex| RouterError(format!("Error creating rustls TLS config: {}", ex)))?;
+        let config = RustlsConfig::from_pem(
+            file_or_string(server_tls.ssl_cert_pem.as_str())?.into_bytes(),
+            file_or_string(server_tls.ssl_key_pem.as_str())?.into_bytes(),
+        )
+        .await
+        .map_err(|ex| RouterError(format!("Error creating rustls TLS config: {}", ex)))?;
         info!("Starting server with https://{}", addr);
         axum_server::bind_rustls(addr, config)
             .serve(router.into_make_service_with_connect_info::<SocketAddr>())

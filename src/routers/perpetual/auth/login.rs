@@ -16,8 +16,9 @@ use tracing::trace;
 
 #[utoipa::path(
     post,
-    path = "/login",
+    path = "/perpetual/login",
     tag = "Perpetual",
+    summary = "Login",
     description = "Login endpoint for username and password authentication",
     responses(
         (status = 200, description = "Create login token", body = LoginResponse),

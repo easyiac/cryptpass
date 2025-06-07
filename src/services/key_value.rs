@@ -1,3 +1,4 @@
+use crate::services::encryption::EncryptedValue;
 use crate::{
     error::CryptPassError::{self, BadRequest, InternalServerError, NotFound},
     physical::{models::KeyValue, schema},
@@ -50,13 +51,14 @@ pub(crate) fn write(
     let encrypted_value = encryption::encrypt(&value, conn)?;
     let new_key_value = KeyValue {
         key: key.to_string(),
-        encrypted_value,
+        encrypted_value: encrypted_value.encrypted_value.clone(),
         deleted: false,
         version: next_version,
         last_updated_at: SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|ex| InternalServerError(format!("Error getting current time: {}", ex)))?
             .as_millis() as i64,
+        encryptor_hash: encrypted_value.encryption_key_hash,
     };
     diesel::insert_into(schema::key_value_table::table)
         .values(&new_key_value)
@@ -115,7 +117,10 @@ pub(crate) fn read(
     } else {
         Err(NotFound("Key not found".to_string()))?
     };
-    let encrypted_value = key_value.encrypted_value.to_string();
+    let encrypted_value = EncryptedValue {
+        encrypted_value: key_value.encrypted_value.to_string(),
+        encryption_key_hash: key_value.encryptor_hash,
+    };
     let decrypted_value = encryption::decrypt(encrypted_value, conn)?;
     Ok(Some(decrypted_value))
 }

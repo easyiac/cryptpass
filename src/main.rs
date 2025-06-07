@@ -36,9 +36,9 @@ async fn main() {
 
     {
         info!("Authorization header key: {}", configuration.server.auth_header_key);
-        if let Some(master_enc_key) = &configuration.server.physical.master_encryption_key {
+        if let Some(unlock_details) = &configuration.server.physical.unlock_details {
             warn!("Setting physical master encryption key from configuration which is not recommended. Use /unlock endpoint instead.");
-            conn.interact(|conn| init::init_unlock(master_enc_key.clone(), conn))
+            conn.interact(|conn| init::unlock_app(unlock_details.clone(), conn))
                 .await
                 .expect("Failed to set encryption key, Unable to interact with database")
                 .expect("Unable to set encryption key in database");
