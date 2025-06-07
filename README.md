@@ -14,11 +14,12 @@ authentication and authorization.
 - **SQLite Backend**: Uses SQLite for data persistence
 - **Swagger UI**: Interactive API documentation
 
-## [Installation](docs/install.md)
+## Documentation
 
-## [Configuration](docs/config.md)
-
-## [OpenAPI Documentation](docs/openapi.yaml)
+- [Installation](docs/Installation.md)
+- [Configuration](docs/Configuration.md)
+- [OpenAPI](docs/OpenAPI.yaml)
+- [Development](docs/Development.md)
 
 ## Security Considerations
 
@@ -28,28 +29,6 @@ authentication and authorization.
 - Always use TLS in production environments
 - Change the default root password after the first login
 
-## Development
+## [License](LICENSE)
 
-### Generate OpenAPI Specification
-
-CryptPass includes a tool to generate the OpenAPI specification:
-
-```bash
-cargo run --bin gen-openapi
-```
-
-### Running Tests
-
-```bash
-cargo test
-```
-
-### Building for Production
-
-```bash
-cargo build --release
-```
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the GLWTS License - see the LICENSE file for details.
