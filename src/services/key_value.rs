@@ -99,12 +99,11 @@ pub(crate) fn get_details(
         .select(KeyValue::as_select())
         .load(conn)
         .map_err(|ex| InternalServerError(format!("Error reading key_value from db: {}", ex)))?;
-    let key_value = if let Some(first) = result.first() {
-        first.clone()
+    if let Some(first) = result.first() {
+        Ok(Some(first.clone()))
     } else {
-        return Ok(None);
-    };
-    Ok(Some(key_value))
+        Ok(None)
+    }
 }
 
 pub(crate) fn read(

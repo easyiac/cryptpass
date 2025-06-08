@@ -18,25 +18,19 @@ pub(crate) fn get_jwt_secret() -> &'static str {
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct JWTHeader {
-    pub(crate) alg: String,
-    pub(crate) typ: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct JWTClaims {
     pub(crate) sub: String,
     pub(crate) exp: u128,
     pub(crate) role: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
+#[derive(Deserialize, Debug, ToSchema)]
 pub(crate) struct LoginRequest {
     pub(crate) username: Option<String>,
     pub(crate) password: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
+#[derive(Serialize, ToSchema)]
 pub(crate) struct LoginResponse {
     pub(crate) token: Option<String>,
     #[serde(rename = "type")]

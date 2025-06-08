@@ -3,7 +3,7 @@ use diesel::{AsChangeset, Identifiable, Insertable, Queryable, Selectable};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Queryable, Insertable, Selectable, Debug, Identifiable)]
+#[derive(Queryable, Insertable, Selectable)]
 #[diesel(primary_key(key_hash, encryptor_hash))]
 #[diesel(table_name = crate::physical::schema::encryption_keys_table)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -13,7 +13,7 @@ pub(crate) struct EncryptionKey {
     pub(crate) encryptor_hash: String,
 }
 
-#[derive(Queryable, Insertable, Selectable, Debug, Identifiable)]
+#[derive(Queryable, Insertable, Selectable)]
 #[diesel(table_name = crate::physical::schema::app_settings_table)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[diesel(primary_key(settings))]
@@ -23,7 +23,7 @@ pub(crate) struct AppSettings {
     pub(crate) last_updated_at: i64,
 }
 
-#[derive(Queryable, Insertable, Selectable, Debug, Identifiable, Clone, Serialize, ToSchema)]
+#[derive(Queryable, Insertable, Selectable, Clone, Serialize, ToSchema)]
 #[diesel(table_name = crate::physical::schema::key_value_table)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[diesel(primary_key(key, version))]
@@ -36,7 +36,7 @@ pub(crate) struct KeyValue {
     pub(crate) encryptor_hash: String,
 }
 
-#[derive(Queryable, Insertable, Selectable, Debug, Identifiable, Clone, AsChangeset)]
+#[derive(Queryable, Insertable, Selectable, Identifiable, AsChangeset)]
 #[diesel(table_name = crate::physical::schema::users_table)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[diesel(primary_key(username))]

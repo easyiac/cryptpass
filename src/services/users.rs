@@ -13,7 +13,7 @@ pub(crate) fn get_user<'a>(username: &'a str, conn: &'a mut SqliteConnection) ->
         .map_err(|ex| InternalServerError(format!("Error reading user from db: {}", ex)))?;
 
     match result.first() {
-        Some(user) => Ok(Some(user.clone().to_users()?)),
+        Some(user) => Ok(Some(user.to_users()?)),
         None => Ok(None),
     }
 }

@@ -36,7 +36,7 @@ pub(crate) async fn auth_layer(
 
     for (key, value) in request.headers().clone() {
         if key.is_some()
-            && (key.as_ref().ok_or_else(|| BadRequest("Bad auth header key".to_string()))?.to_string().to_lowercase()
+            && (key.ok_or_else(|| BadRequest("Bad auth header key".to_string()))?.to_string().to_lowercase()
                 == configuration.server.auth_header_key.to_lowercase())
         {
             let val_str = value.to_str().map_err(|ex| BadRequest(format!("Invalid auth header value: {}", ex)))?;
