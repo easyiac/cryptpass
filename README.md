@@ -33,4 +33,4 @@ authentication and authorization.
 
 ## [License](LICENSE)
 
-This project is licensed under the GLWTS License - see the LICENSE file for details.
+This project is licensed under the GLWTS License.
