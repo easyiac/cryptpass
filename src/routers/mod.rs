@@ -73,8 +73,7 @@ pub(crate) struct ApiDoc;
 
 pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassError> {
     let configuration = CRYPTPASS_CONFIG_INSTANCE.get().expect("Configuration not initialized.");
-    let server = &configuration.server.clone();
-    let socket_addr = format!("0.0.0.0:{}", server.port.to_string().as_str());
+    let socket_addr = format!("0.0.0.0:{}", &configuration.server.port.to_string().as_str());
     let addr: SocketAddr = socket_addr
         .parse()
         .map_err(|ex| RouterError(format!("Unable to parse address: {}, error: {}", socket_addr, ex)))?;
@@ -95,7 +94,7 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
         .layer(middleware::from_fn(correlation_id::set_correlation_id))
         .layer(CorsLayer::new().allow_headers(Any).allow_methods(Any).allow_origin(Any).expose_headers(Any));
 
-    if let Some(server_tls) = server.clone().tls {
+    if let Some(server_tls) = &configuration.server.tls {
         let config = RustlsConfig::from_pem(
             file_or_string(server_tls.ssl_cert_pem.as_str())?.into_bytes(),
             file_or_string(server_tls.ssl_key_pem.as_str())?.into_bytes(),

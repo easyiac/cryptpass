@@ -2,25 +2,24 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::fmt::Display;
 use tracing::warn;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct CryptPassErrorDetails {
     pub(crate) error: String,
     pub(crate) correlation_id: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, ToSchema)]
 pub(crate) enum CryptPassError {
     RouterError(String),
     NotFound(String),
     InternalServerError(String),
     Unauthorized(String),
-    MethodNotAllowed(String),
     BadRequest(String),
     ApplicationNotInitialized,
     ApplicationNotUnlocked,
@@ -32,7 +31,6 @@ impl Display for CryptPassError {
             CryptPassError::NotFound(e) => write!(f, "Not Found: {}", e),
             CryptPassError::InternalServerError(e) => write!(f, "Internal Server Error: {}", e),
             CryptPassError::Unauthorized(e) => write!(f, "Unauthorized: {}", e),
-            CryptPassError::MethodNotAllowed(e) => write!(f, "Method Not Allowed: {}", e),
             CryptPassError::RouterError(e) => write!(f, "Router Error: {}", e),
             CryptPassError::BadRequest(e) => write!(f, "Bad Request: {}", e),
             CryptPassError::ApplicationNotInitialized => write!(f, "Application Not Initialized.",),
@@ -63,12 +61,6 @@ impl IntoResponse for CryptPassError {
                 let error_body =
                     serde_json::json!(CryptPassErrorDetails { error: ex, correlation_id: Some(random_uuid) });
                 (StatusCode::UNAUTHORIZED, axum::Json(error_body)).into_response()
-            }
-            CryptPassError::MethodNotAllowed(ex) => {
-                warn!("Method Not Allowed: {} - {}", random_uuid, ex);
-                let error_body =
-                    serde_json::json!(CryptPassErrorDetails { error: ex, correlation_id: Some(random_uuid) });
-                (StatusCode::METHOD_NOT_ALLOWED, axum::Json(error_body)).into_response()
             }
             CryptPassError::RouterError(ex) => {
                 warn!("Router Error: {} - {}", random_uuid, ex);

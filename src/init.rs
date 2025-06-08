@@ -55,7 +55,7 @@ fn default_data_dir() -> String {
     "/var/lib/cryptpass".to_string()
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Deserialize)]
 pub(crate) struct PhysicalConfig {
     #[serde(rename = "data-dir", default = "default_data_dir")]
     pub(crate) data_dir: String,
@@ -71,7 +71,7 @@ pub(crate) struct UnlockDetails {
     pub(crate) master_encryption_key: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Deserialize)]
 pub(crate) struct Physical {
     #[serde(rename = "unlock-details")]
     pub(crate) unlock_details: Option<UnlockDetails>,
@@ -97,7 +97,7 @@ pub(crate) struct ServerTls {
     pub(crate) ssl_cert_pem: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Deserialize)]
 pub(crate) struct Server {
     #[serde(default = "default_port")]
     pub(crate) port: i32,
@@ -129,7 +129,7 @@ fn default_server() -> Server {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Deserialize, )]
 pub(crate) struct Configuration {
     #[serde(default = "default_server")]
     pub(crate) server: Server,

@@ -4,7 +4,7 @@ use crate::{
 };
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection};
 
-pub(crate) fn get_user(username: &str, conn: &mut SqliteConnection) -> Result<Option<Users>, CryptPassError> {
+pub(crate) fn get_user<'a>(username: &'a str, conn: &'a mut SqliteConnection) -> Result<Option<Users>, CryptPassError> {
     let result = schema::users_table::dsl::users_table
         .filter(schema::users_table::username.eq(username))
         .limit(1)

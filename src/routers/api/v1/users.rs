@@ -18,9 +18,7 @@ use serde_json::Value;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub(super) async fn api() -> Router<crate::init::AppState> {
-    Router::new()
-        .route("/user/{username}", put(create_update_user))
-        .route("/user/{username}", get(get_user))
+    Router::new().route("/user/{username}", put(create_update_user)).route("/user/{username}", get(get_user))
 }
 
 #[utoipa::path(
@@ -49,13 +47,14 @@ async fn get_user(
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
-    let user_err = username.clone();
     let user = conn
-        .interact(move |conn| crate::services::users::get_user(username.as_str(), conn))
+        .interact(move |conn| crate::services::users::get_user(&username, conn))
         .await
-        .map_err(|ex| InternalServerError(format!("Error interacting with database: {}", ex)))??
-        .ok_or_else(|| NotFound(format!("User with key {} not found", user_err)))?;
-    Ok((StatusCode::OK, Json(user)))
+        .map_err(|ex| InternalServerError(format!("Error interacting with database: {}", ex)))??;
+    match user {
+        Some(user) => Ok((StatusCode::OK, Json(user))),
+        None => Err(NotFound("User with not found".to_string())),
+    }
 }
 
 #[utoipa::path(
@@ -94,10 +93,10 @@ async fn create_update_user(
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
-    let user_err = username.clone();
+    let username_for_user_option_query = username.clone();
     let is_new_user;
     let user_option = conn
-        .interact(move |conn| crate::services::users::get_user(username.as_str(), conn))
+        .interact(move |conn| crate::services::users::get_user(username_for_user_option_query.as_str(), conn))
         .await
         .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
     let mut default_roles = Vec::new();
@@ -119,7 +118,7 @@ async fn create_update_user(
                 .map_err(|ex| InternalServerError(format!("Error interacting with database: {}", ex)))??;
             is_new_user = true;
             Users {
-                username: user_err,
+                username,
                 email: None,
                 password_hash: None,
                 password_last_changed: 0i64,
@@ -160,16 +159,16 @@ async fn create_update_user(
         user.roles = serde_json::from_value(roles.clone())
             .map_err(|e| BadRequest(format!("'roles' must be a valid JSON array: {}", e)))?;
     };
-    let user_res = user.clone();
+    let user_for_create_update = user.clone();
     if is_new_user {
-        conn.interact(move |conn| crate::services::users::create_user(user.clone(), conn))
+        conn.interact(move |conn| crate::services::users::create_user(user_for_create_update, conn))
             .await
             .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
     } else {
-        conn.interact(move |conn| crate::services::users::update_user(user.clone(), conn))
+        conn.interact(move |conn| crate::services::users::update_user(user_for_create_update, conn))
             .await
             .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
     }
 
-    Ok((StatusCode::OK, Json(user_res)))
+    Ok((StatusCode::OK, Json(user)))
 }

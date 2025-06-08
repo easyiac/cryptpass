@@ -17,12 +17,12 @@ use serde_json::Value;
 use tracing::info;
 use utoipa::{IntoParams, ToSchema};
 
-#[derive(Deserialize, IntoParams, ToSchema, Debug, Clone)]
+#[derive(Deserialize, IntoParams, ToSchema)]
 pub(crate) struct VersionQuery {
     version: Option<i32>,
 }
 
-#[derive(Deserialize, Serialize, ToSchema, Debug, Clone)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub(crate) struct KeyValueData {
     data: Value,
 }
@@ -68,15 +68,15 @@ pub(crate) async fn get_data(
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     let version = version_query.version;
-    let value = conn
+    let existing_data = conn
         .interact(move |conn| services::key_value::read(key.as_str(), version, conn))
         .await
         .map_err(|ex| InternalServerError(format!("Error interacting with database: {}", ex)))??;
-    if let Some(value) = value {
+    if let Some(existing_data) = existing_data {
         Ok((
             StatusCode::OK,
             Json(KeyValueData {
-                data: serde_json::from_str::<Value>(value.clone().as_str())
+                data: serde_json::from_str::<Value>(&existing_data)
                     .map_err(|ex| InternalServerError(format!("Error parsing JSON: {}", ex)))?,
             }),
         ))
@@ -121,11 +121,11 @@ pub(crate) async fn update_data(
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     let body_str =
-        serde_json::to_string(&body.data.clone()).map_err(|ex| BadRequest(format!("Unable to parse data: {}", ex)))?;
+        serde_json::to_string(&body.data).map_err(|ex| BadRequest(format!("Unable to parse data: {}", ex)))?;
 
     let version = version_query.version;
     let new_version = conn
-        .interact(move |conn| services::key_value::write(key.as_str(), body_str.as_str(), version, conn))
+        .interact(move |conn| services::key_value::write(&key, &body_str, version, conn))
         .await
         .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
     Ok((StatusCode::CREATED, Json(serde_json::json!({"version": new_version}))))
@@ -196,7 +196,7 @@ async fn details(
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     let version = version_query.version;
     let value = conn
-        .interact(move |conn| services::key_value::get_details(key.as_str(), version, conn))
+        .interact(move |conn| services::key_value::get_details(&key, version, conn))
         .await
         .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
     if let Some(value) = value {
@@ -206,7 +206,7 @@ async fn details(
     }
 }
 
-#[derive(Serialize, ToSchema, Debug, Clone, Deserialize)]
+#[derive(Serialize, ToSchema)]
 pub(crate) struct KeyValueList {
     data: Vec<String>,
 }
@@ -264,7 +264,7 @@ async fn list_keys(key: String, shared_state: AppState) -> Result<(StatusCode, J
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     info!("Listing keys for {}", key);
     let keys = conn
-        .interact(move |conn| services::key_value::list_all_keys(key.as_str(), conn))
+        .interact(move |conn| services::key_value::list_all_keys(&key, conn))
         .await
         .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
     Ok((StatusCode::OK, Json(KeyValueList { data: keys })))
