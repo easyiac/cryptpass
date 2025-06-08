@@ -69,7 +69,7 @@ pub(crate) async fn get_data(
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     let version = version_query.version;
     let existing_data = conn
-        .interact(move |conn| services::key_value::read(key.as_str(), version, conn))
+        .interact(move |conn| services::key_value::read(key.as_str(), &version, conn))
         .await
         .map_err(|ex| InternalServerError(format!("Error interacting with database: {}", ex)))??;
     if let Some(existing_data) = existing_data {
@@ -125,7 +125,7 @@ pub(crate) async fn update_data(
 
     let version = version_query.version;
     let new_version = conn
-        .interact(move |conn| services::key_value::write(&key, &body_str, version, conn))
+        .interact(move |conn| services::key_value::write(&key, &body_str, &version, conn))
         .await
         .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
     Ok((StatusCode::CREATED, Json(serde_json::json!({"version": new_version}))))
@@ -159,7 +159,7 @@ pub(crate) async fn delete_data(
     let pool = shared_state.pool;
     let conn =
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
-    conn.interact(move |conn| services::key_value::mark_version_for_delete(key.as_str(), version_query.version, conn))
+    conn.interact(move |conn| services::key_value::mark_version_for_delete(key.as_str(), &version_query.version, conn))
         .await
         .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
     Ok(StatusCode::NO_CONTENT)
@@ -196,7 +196,7 @@ async fn details(
         pool.get().await.map_err(|e| InternalServerError(format!("Error getting connection from pool: {}", e)))?;
     let version = version_query.version;
     let value = conn
-        .interact(move |conn| services::key_value::get_details(&key, version, conn))
+        .interact(move |conn| services::key_value::get_details(&key, &version, conn))
         .await
         .map_err(|e| InternalServerError(format!("Error interacting with database: {}", e)))??;
     if let Some(value) = value {

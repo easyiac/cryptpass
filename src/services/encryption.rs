@@ -10,16 +10,16 @@ use diesel::{QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct InternalEncryptionKey {
     pub(crate) key: String,
     pub(crate) hash: String,
 }
 
 static INTERNAL_ENCRYPTION_KEY: OnceLock<InternalEncryptionKey> = OnceLock::new();
-fn get_internal_encryption_key(conn: &mut SqliteConnection) -> Result<InternalEncryptionKey, CryptPassError> {
+
+fn get_internal_encryption_key(conn: &mut SqliteConnection) -> Result<&'static InternalEncryptionKey, CryptPassError> {
     if let Some(internal_encryption_key) = INTERNAL_ENCRYPTION_KEY.get() {
-        return Ok(internal_encryption_key.clone());
+        Ok(internal_encryption_key)
     } else {
         let existing_internal_encryption_key_encrypted_str = get_settings("INTERNAL_ENCRYPTION_KEY_ENCRYPTED", conn)?;
         if existing_internal_encryption_key_encrypted_str.is_some() {
@@ -54,9 +54,9 @@ pub(crate) fn generate_encryption_key(conn: &mut SqliteConnection) -> Result<Gen
     let hash = utils::hash(&key);
     let encrypted_encryption_key = utils::encrypt(&internal_encryption_key.key, &key)?;
     let new_encryption_key = EncryptionKey {
-        encrypted_key: encrypted_encryption_key.to_string(),
-        key_hash: hash.to_string(),
-        encryptor_hash: internal_encryption_key.hash,
+        encrypted_key: encrypted_encryption_key,
+        key_hash: hash.clone(),
+        encryptor_hash: internal_encryption_key.hash.clone(),
     };
     diesel::insert_into(schema::encryption_keys_table::table)
         .values(&new_encryption_key)
@@ -89,13 +89,13 @@ pub(crate) fn get_encryption_key(
     let encryption_key_encrypted =
         encryption_key_encrypted.first().ok_or_else(|| NotFound("Encryption key not found".to_string()))?;
 
-    if utils::match_hash(encryption_key_encrypted.encryptor_hash.as_str(), internal_encryption_key.hash.as_str()) {
+    if utils::match_hash(&encryption_key_encrypted.encryptor_hash, &internal_encryption_key.hash) {
         return Err(BadRequest("Encryption key hash does not match master encryption key hash.".to_string()));
     };
-    Ok(utils::decrypt(&internal_encryption_key.key.clone(), &encryption_key_encrypted.encrypted_key)?)
+    Ok(utils::decrypt(&internal_encryption_key.key, &encryption_key_encrypted.encrypted_key)?)
 }
 
-pub(crate) fn decrypt(encrypted_value: EncryptedValue, conn: &mut SqliteConnection) -> Result<String, CryptPassError> {
+pub(crate) fn decrypt(encrypted_value: &EncryptedValue, conn: &mut SqliteConnection) -> Result<String, CryptPassError> {
     let encryption_key = get_encryption_key(&encrypted_value.encryption_key_hash, conn)?;
-    utils::decrypt(encryption_key.as_str(), encrypted_value.encrypted_value.as_str())
+    utils::decrypt(&encryption_key, &encrypted_value.encrypted_value)
 }
