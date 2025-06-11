@@ -9,8 +9,8 @@ docker buildx create --name cryptpass-builder --driver docker-container --bootst
 docker buildx build -f Dockerfile . \
     --builder cryptpass-builder \
     --build-arg RUST_VERSION="${rust_version}" \
-    -t "docker.io/arpanrecme/cryptpass:${version}" \
-    -t "docker.io/arpanrecme/cryptpass:latest" \
+    -t "docker.io/arpanrec/cryptpass:${version}" \
+    -t "docker.io/arpanrec/cryptpass:latest" \
     --platform linux/amd64,linux/arm64 \
     --output type=registry \
     --progress=plain
