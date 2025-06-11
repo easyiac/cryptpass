@@ -9,11 +9,8 @@ docker buildx create --name cryptpass-builder --driver docker-container --bootst
 docker buildx build -f Dockerfile . \
     --builder cryptpass-builder \
     --build-arg RUST_VERSION="${rust_version}" \
-    -t "docker.io/arpanrec/cryptpass:${version}" \
-    -t "docker.io/arpanrec/cryptpass:latest" \
+    --tag "docker.io/easyiac/cryptpass:${version}" \
+    --tag "docker.io/easyiac/cryptpass:latest" \
     --platform linux/amd64,linux/arm64 \
     --output type=registry \
     --progress=plain
-
-#    -t "10.8.33.192:8008/cryptpass/cryptpass:${version}" \
-#    -t "10.8.33.192:8008/cryptpass/cryptpass:latest" \
