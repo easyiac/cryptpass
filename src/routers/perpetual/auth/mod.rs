@@ -8,7 +8,7 @@ pub(crate) mod layer;
 pub(crate) mod login;
 
 static JWT_SECRET: OnceLock<String> = OnceLock::new();
-static JWT_DURATION: u128 = 360000;
+static JWT_DURATION: u128 = 3600000;
 pub(crate) fn get_jwt_secret() -> &'static str {
     JWT_SECRET.get_or_init(|| {
         let secret_jwt = rand::rng().sample_iter(&Alphanumeric).take(64).map(char::from).collect();
