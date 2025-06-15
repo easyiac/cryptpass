@@ -23,9 +23,9 @@ fn get_internal_encryption_key(conn: &mut SqliteConnection) -> Result<&'static I
     } else {
         let existing_internal_encryption_key_encrypted_str = get_settings("INTERNAL_ENCRYPTION_KEY_ENCRYPTED", conn)?;
         if existing_internal_encryption_key_encrypted_str.is_some() {
-            Err(ApplicationNotUnlocked)
+            Err(ApplicationNotUnlocked("Trying to access internal encryption key before unlocking application.".to_string()))
         } else {
-            Err(ApplicationNotInitialized)
+            Err(ApplicationNotInitialized("Trying to access internal encryption key before initializing application.".to_string()))
         }
     }
 }

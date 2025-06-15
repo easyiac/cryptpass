@@ -290,7 +290,7 @@ pub(crate) fn unlock_app(
             internal_encryption_key
         }
         None => {
-            return Err(ApplicationNotInitialized);
+            return Err(ApplicationNotInitialized("The application has not been initialized yet".to_string()));
         }
     };
     let internal_enc_key_settings = InternalEncryptionKeyDetails {
