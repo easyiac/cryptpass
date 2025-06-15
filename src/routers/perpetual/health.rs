@@ -20,9 +20,9 @@ pub(crate) struct Health {
     path = "/perpetual/health",
     tag = "Perpetual",
     summary = "Check application health status.",
-    description = "Returns the health status of the CryptPass application. Useful for monitoring and readiness checks. Responds with a simple status message.",
+    description = "Returns the health status of the CryptPass application, including whether it's running, initialized, and unlocked. Useful for monitoring, readiness checks, and troubleshooting. The response includes detailed status flags and any error messages.",
     responses(
-        (status = 200, description = "Health check successful.", body = Health),
+        (status = 200, description = "Health check successful. Application status details returned.", body = Health),
         (status = 500, description = "Internal server error.", body = CryptPassErrorDetails),
     ),
     security(),

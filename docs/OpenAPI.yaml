@@ -356,11 +356,11 @@ paths:
       tags:
       - Perpetual
       summary: Check application health status.
-      description: Returns the health status of the CryptPass application. Useful for monitoring and readiness checks. Responds with a simple status message.
+      description: Returns the health status of the CryptPass application, including whether it's running, initialized, and unlocked. Useful for monitoring, readiness checks, and troubleshooting. The response includes detailed status flags and any error messages.
       operationId: health_handler
       responses:
         '200':
-          description: Health check successful.
+          description: Health check successful. Application status details returned.
           content:
             application/json:
               schema:
@@ -482,10 +482,20 @@ components:
     Health:
       type: object
       required:
-      - status
+      - up
+      - initialized
+      - unlocked
       properties:
-        status:
-          type: string
+        error:
+          type:
+          - string
+          - 'null'
+        initialized:
+          type: boolean
+        unlocked:
+          type: boolean
+        up:
+          type: boolean
     InternalEncryptionKeyDetails:
       type: object
       required:
