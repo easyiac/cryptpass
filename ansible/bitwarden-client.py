@@ -3,6 +3,69 @@
 # (c) 2025, Arpan Mandal <me@arpanrec.com>
 #
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+#
+# =============================================================================
+#
+# This script is to be used with ansible-vault's --vault-id arg
+# to retrieve the vault password via Bitwarden CLI.
+#
+# This file *MUST* be saved with executable permissions. Otherwise, Ansible
+# will try to parse as a password file and display: "ERROR! Decryption failed"
+#
+# The `bw` (Bitwarden CLI) command must be installed and available in PATH.
+# You must be logged in to Bitwarden and have a valid session.
+# See: https://bitwarden.com/help/cli/
+#
+# By default, this script will look for a Bitwarden item named 'ANSIBLE_VAULT_PASS'
+# and use the custom field named 'default' to store/retrieve the vault password.
+# To specify different values, add a [vault] section to your ansible.cfg file
+# with 'bw_item' and 'bw_item_field' options. Example:
+#
+# [vault]
+# bw_item = 'my-ansible-vault-item'
+# bw_item_field = 'production'
+#
+# In usage like:
+#
+#    ansible-vault --vault-id production@/path/to/bitwarden-client.py view some_encrypted_file
+#
+#  --vault-id will call this script like:
+#
+#     /path/to/bitwarden-client.py --vault-id production
+#
+# That will retrieve the password from the Bitwarden item's custom field named 'production'.
+# This is equivalent to getting the value from the custom field 'production' in the 
+# 'ANSIBLE_VAULT_PASS' Bitwarden item.
+#
+# If no vault-id name is specified to ansible command line, the bitwarden-client.py
+# script will be called without a '--vault-id' and will default to the custom field 'default'
+# This is equivalent to getting the value from the custom field 'default' in the
+# 'ANSIBLE_VAULT_PASS' Bitwarden item.
+#
+# You can configure the `vault_password_file` option in ansible.cfg:
+#
+# [defaults]
+# ...
+# vault_password_file = /path/to/bitwarden-client.py
+# ...
+#
+# To set your password, `cd` to your project directory and run:
+#
+#   # will use default Bitwarden item 'ANSIBLE_VAULT_PASS' and custom field 'default'
+#   /path/to/bitwarden-client.py --set
+#
+# or to specify a custom field name (vault-id) of 'production':
+#
+#  /path/to/bitwarden-client.py --vault-id production --set
+#
+# or to specify a different Bitwarden item name:
+#
+#  /path/to/bitwarden-client.py --bw-item my-vault-secrets --vault-id production --set
+#
+# If you choose not to configure the path to `vault_password_file` in
+# ansible.cfg, your `ansible-playbook` command might look like:
+#
+# ansible-playbook --vault-id=production@/path/to/bitwarden-client.py site.yml
 
 from __future__ import absolute_import, division, print_function
 
