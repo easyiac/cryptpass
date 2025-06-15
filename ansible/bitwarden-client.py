@@ -34,7 +34,7 @@
 #     /path/to/bitwarden-client.py --vault-id production
 #
 # That will retrieve the password from the Bitwarden item's custom field named 'production'.
-# This is equivalent to getting the value from the custom field 'production' in the 
+# This is equivalent to getting the value from the custom field 'production' in the
 # 'ANSIBLE_VAULT_PASS' Bitwarden item.
 #
 # If no vault-id name is specified to ansible command line, the bitwarden-client.py
@@ -67,6 +67,9 @@
 #
 # ansible-playbook --vault-id=production@/path/to/bitwarden-client.py site.yml
 
+
+# pylint: disable=line-too-long
+
 from __future__ import absolute_import, division, print_function
 
 import base64
@@ -90,9 +93,7 @@ KEYNAME_UNKNOWN_RC = 2
 
 
 def __build_arg_parser():
-    parser = argparse.ArgumentParser(
-        description="Get a vault password from Bitwarden CLI"
-    )
+    parser = argparse.ArgumentParser(description="Get a vault password from Bitwarden CLI")
 
     parser.add_argument(
         "--bw-item",
@@ -159,7 +160,19 @@ def __bw_exec(
     return command_out.stdout
 
 
+# pylint: disable=too-many-locals
 def main():
+    """
+    Main entry point for the Bitwarden Ansible vault password client.
+
+    This function:
+    - Loads configuration from ansible.cfg if available, to determine the Bitwarden item and field to use.
+    - Parses command-line arguments for Bitwarden item name, vault-id (field), and set mode.
+    - Syncs Bitwarden CLI.
+    - If --set is specified, prompts the user to set/update the password in the specified Bitwarden item/field.
+    - Otherwise, retrieves and prints the password from the specified Bitwarden item/field.
+    - Exits with an error if the field is not found or on command failure.
+    """
     vault_id = "default"
     bw_item_name = "ANSIBLE_VAULT_PASS"
 
