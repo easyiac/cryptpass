@@ -8,7 +8,7 @@ use tracing::warn;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Serialize, ToSchema)]
 pub(crate) struct CryptPassErrorDetails {
     pub(crate) error: String,
     pub(crate) correlation_id: Option<String>,

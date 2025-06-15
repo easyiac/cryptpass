@@ -1,7 +1,4 @@
-use axum::body::Body;
-use axum::http::Request;
-use axum::middleware::Next;
-use axum::response::Response;
+use axum::{body::Body, http::Request, middleware::Next, response::Response};
 use tracing::trace;
 use uuid::Uuid;
 
