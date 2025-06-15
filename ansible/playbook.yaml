@@ -20,6 +20,7 @@
                 - metadata
                 - --format-version=1
                 - --no-deps
+            chdir: "{{ playbook_dir | dirname }}"
         register: cargo_metadata
         changed_when: false
         delegate_to: localhost
