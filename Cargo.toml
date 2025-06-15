@@ -1,6 +1,6 @@
 [package]
 name = "cryptpass"
-version = "1.0.24"
+version = "1.0.25"
 edition = "2021"
 rust-version = "1.86.0"
 description = "Manage seed data for my home lab."
@@ -50,7 +50,7 @@ deadpool-diesel = { version = "0.6.1", features = [
 # apt-get update && apt-get install -y libsqlite3-dev
 libsqlite3-sys = { version = "0.33.0", features = ["bundled", "cc"] }
 regex = "1.11.1"
-tower-http = { version = "0.6.4", features = ["cors", "trace"] }
+tower-http = { version = "0.6.6", features = ["cors", "trace"] }
 jsonwebtoken = "9.3.1"
 utoipa = { version = "5.3.1", features = ["axum_extras", "yaml", "debug"] }
 utoipa-axum = { version = "0.2.0", features = ["debug"] }

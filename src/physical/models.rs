@@ -53,31 +53,31 @@ pub(crate) struct UserTable {
     pub(crate) jwt_secret_b64_encrypted: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
+#[derive(Serialize, Deserialize, Clone, ToSchema)]
 pub(crate) enum PrivilegeType {
     SUDO,
     #[allow(non_camel_case_types)]
     NO_SUDO,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
+#[derive(Serialize, Deserialize, Clone, ToSchema)]
 pub(crate) struct Privilege {
     pub(crate) name: PrivilegeType,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
+#[derive(Serialize, Deserialize, Clone, ToSchema)]
 pub(crate) enum RoleType {
     ADMIN,
     USER,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
+#[derive(Serialize, Deserialize, Clone, ToSchema)]
 pub(crate) struct Role {
     pub(crate) name: RoleType,
     pub(crate) privileges: Vec<Privilege>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[derive(Serialize, Clone, ToSchema)]
 pub(crate) struct Users {
     #[serde(skip)]
     pub(crate) username: String,

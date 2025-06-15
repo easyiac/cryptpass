@@ -129,7 +129,7 @@ fn default_server() -> Server {
     }
 }
 
-#[derive(Deserialize, )]
+#[derive(Deserialize)]
 pub(crate) struct Configuration {
     #[serde(default = "default_server")]
     pub(crate) server: Server,

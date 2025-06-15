@@ -65,8 +65,7 @@ impl Modify for SecurityAddon {
         license(name = "MIT", url = "https://opensource.org/licenses/MIT"),
     ),
     servers(
-        (url = "http://127.0.0.1:8088", description = "Local server"),
-        (url = "https://10.8.33.192:8088", description = "Local VPN server"),
+        // (url = "http://127.0.0.1:8088", description = "Local server"),
     ),
 )]
 pub(crate) struct ApiDoc;
@@ -87,12 +86,12 @@ pub(crate) async fn axum_server(shared_state: AppState) -> Result<(), CryptPassE
         .nest("/perpetual", perpetual::api().await)
         .nest("/api", api::api().await)
         .layer(middleware::from_fn_with_state(shared_state.clone(), perpetual::auth::layer::auth_layer))
-        .with_state(shared_state)
         .fallback(|| async { StatusCode::NOT_FOUND })
         // .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(middleware::from_fn(printer::print_request_response))
         .layer(middleware::from_fn(correlation_id::set_correlation_id))
-        .layer(CorsLayer::new().allow_headers(Any).allow_methods(Any).allow_origin(Any).expose_headers(Any));
+        .layer(CorsLayer::new().allow_headers(Any).allow_methods(Any).allow_origin(Any).expose_headers(Any))
+        .with_state(shared_state);
 
     if let Some(server_tls) = &configuration.server.tls {
         let config = RustlsConfig::from_pem(

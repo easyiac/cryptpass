@@ -133,6 +133,12 @@ async fn create_update_user(
         }
     };
 
+    if let Some(_) = body.get("password_last_changed") {
+        Err(BadRequest("password_last_changed can't be set manually via API, It's handled internally.".to_string()))?
+    };
+    if let Some(_) = body.get("last_login") {
+        Err(BadRequest("last_login can't be set manually via API, It's handled internally.".to_string()))?
+    };
     if let Some(password) = body.get("password") {
         let password_str =
             password.as_str().ok_or_else(|| BadRequest("'password' must be a string".to_string()))?.to_string();

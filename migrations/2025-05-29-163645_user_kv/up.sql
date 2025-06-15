@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS key_value_t
     version_c         INTEGER               NOT NULL,
     last_updated_at_c INTEGER               NOT NULL,
     encryptor_hash_c  TEXT                  NOT NULL,
-    PRIMARY KEY (key_c, version_c)
+    PRIMARY KEY (key_c, version_c),
+    FOREIGN KEY (encryptor_hash_c) REFERENCES encryption_keys_t (key_hash_c)
 );
 
 CREATE TABLE IF NOT EXISTS users_t
@@ -36,5 +37,6 @@ CREATE TABLE IF NOT EXISTS users_t
     locked_c                   BOOLEAN DEFAULT TRUE  NOT NULL,
     enabled_c                  BOOLEAN DEFAULT FALSE NOT NULL,
     encryptor_hash_c           TEXT                  NOT NULL,
-    jwt_secret_b64_encrypted_c TEXT                  NOT NULL
+    jwt_secret_b64_encrypted_c TEXT                  NOT NULL,
+    FOREIGN KEY (encryptor_hash_c) REFERENCES encryption_keys_t (key_hash_c)
 );

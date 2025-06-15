@@ -5,12 +5,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.0.21
-servers:
-- url: http://127.0.0.1:8088
-  description: Local server
-- url: https://10.8.33.192:8088
-  description: Local VPN server
+  version: 1.0.25
 paths:
   /api/v1/keyvalue/data/{key}:
     get:
