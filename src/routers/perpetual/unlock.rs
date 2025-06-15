@@ -32,10 +32,10 @@ pub(crate) async fn unlock_handler(
     let conn =
         pool.get().await.map_err(|ex| InternalServerError(format!("Error getting connection from pool: {}", ex)))?;
 
-    let set_key = conn
+    let internal_encryption_key_details: InternalEncryptionKeyDetails = conn
         .interact(move |conn| crate::init::unlock_app(unlock_details, conn))
         .await
         .map_err(|ex| InternalServerError(format!("Error interacting with database: {}", ex)))??;
 
-    Ok((StatusCode::OK, Json(set_key)))
+    Ok((StatusCode::OK, Json(internal_encryption_key_details)))
 }

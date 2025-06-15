@@ -31,10 +31,10 @@ pub(crate) async fn init_app_handler(
     let conn =
         pool.get().await.map_err(|ex| InternalServerError(format!("Error getting connection from pool: {}", ex)))?;
 
-    let master_key = conn
+    let application_initialization_details: ApplicationInitializationDetails = conn
         .interact(move |conn| crate::init::init_app(conn))
         .await
         .map_err(|ex| InternalServerError(format!("Error interacting with database: {}", ex)))??;
 
-    Ok((StatusCode::CREATED, Json(master_key)))
+    Ok((StatusCode::CREATED, Json(application_initialization_details)))
 }

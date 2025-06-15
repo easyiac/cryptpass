@@ -15,9 +15,9 @@ pub(crate) struct InternalEncryptionKey {
     pub(crate) hash: String,
 }
 
-static INTERNAL_ENCRYPTION_KEY: OnceLock<InternalEncryptionKey> = OnceLock::new();
+pub(crate) static INTERNAL_ENCRYPTION_KEY: OnceLock<InternalEncryptionKey> = OnceLock::new();
 
-fn get_internal_encryption_key(conn: &mut SqliteConnection) -> Result<&'static InternalEncryptionKey, CryptPassError> {
+pub(crate) fn get_internal_encryption_key(conn: &mut SqliteConnection) -> Result<&'static InternalEncryptionKey, CryptPassError> {
     if let Some(internal_encryption_key) = INTERNAL_ENCRYPTION_KEY.get() {
         Ok(internal_encryption_key)
     } else {
@@ -40,13 +40,13 @@ pub(crate) fn set_internal_encryption_key(key: String, hash: String) -> Result<(
     })?)
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct GeneratedEncryptionKey {
     pub(crate) key: String,
     pub(crate) hash: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct EncryptedValue {
     pub(crate) encrypted_value: String,
     pub(crate) encryption_key_hash: String,
