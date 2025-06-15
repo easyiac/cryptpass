@@ -5,7 +5,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.0.25
+  version: 1.0.26
 paths:
   /api/v1/keyvalue/data/{key}:
     get:
